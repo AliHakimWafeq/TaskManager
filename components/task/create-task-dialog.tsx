@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { ModKbd } from "@/components/layout/kbd";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -199,7 +200,7 @@ export function CreateTaskDialog({
               </Button>
               <Button type="submit" size="sm" disabled={pending || !title.trim()}>
                 Create task
-                <kbd className="ml-1 rounded bg-primary-foreground/20 px-1 font-mono text-[10px]">⌘↵</kbd>
+                <ModKbd keyLabel="↵" className="ml-1 border-0 bg-primary-foreground/20" />
               </Button>
             </div>
           </DialogFooter>

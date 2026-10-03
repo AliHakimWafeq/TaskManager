@@ -41,9 +41,11 @@ Set `DATA_DIR` to change where the database and uploads are stored (default `./d
 | Key | Action |
 |---|---|
 | `C` | New task |
-| `⌘K` / `Ctrl+K` | Command palette: search tasks, jump to projects |
+| `⌘K` (Mac) / `Ctrl+K` (Windows, Linux) | Command palette: search tasks, jump to projects |
 | `Esc` | Close the task panel |
-| `⌘↵` | Submit the new-task dialog |
+| `⌘↵` (Mac) / `Ctrl+Enter` (Windows, Linux) | Submit the new-task dialog |
+
+Labels in the UI switch between `⌘` and `Ctrl` automatically based on your platform.
 
 ## Layout
 
