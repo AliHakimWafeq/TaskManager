@@ -3,12 +3,13 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripHorizontal, Plus } from "lucide-react";
+import { EyeOff, GripHorizontal, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StatusIcon } from "@/components/task/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { createTask } from "@/lib/actions/tasks";
 import type { Status } from "@/lib/db/schema";
 import type { TaskRow } from "@/lib/queries/tasks";
@@ -21,6 +22,7 @@ export function ColumnShell({
   children,
   handleProps,
   onAdd,
+  onHide,
   dragging,
 }: {
   status: Status;
@@ -28,6 +30,7 @@ export function ColumnShell({
   children: React.ReactNode;
   handleProps?: React.HTMLAttributes<HTMLElement>;
   onAdd?: () => void;
+  onHide?: () => void;
   dragging?: boolean;
 }) {
   return (
@@ -45,6 +48,24 @@ export function ColumnShell({
         <span className="truncate text-[13px] font-medium">{status.name}</span>
         <span className="font-mono text-[11px] text-muted-foreground">{count}</span>
         <GripHorizontal className="ml-auto size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/col:opacity-100" />
+        {onHide && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={`Hide ${status.name} column`}
+                  className="opacity-0 transition-opacity group-hover/col:opacity-100 focus-visible:opacity-100"
+                  onClick={onHide}
+                />
+              }
+            >
+              <EyeOff />
+            </TooltipTrigger>
+            <TooltipContent>Hide column</TooltipContent>
+          </Tooltip>
+        )}
         {onAdd && (
           <Button variant="ghost" size="icon-xs" aria-label={`Add task to ${status.name}`} onClick={onAdd}>
             <Plus />
@@ -61,11 +82,13 @@ export function BoardColumn({
   tasks,
   projectId,
   onOpenCreate,
+  onHide,
 }: {
   status: Status;
   tasks: TaskRow[];
   projectId: string;
   onOpenCreate: (statusId: string) => void;
+  onHide?: (statusId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `col:${status.id}`,
@@ -87,6 +110,7 @@ export function BoardColumn({
         count={tasks.length}
         handleProps={{ ...attributes, ...listeners, className: "cursor-grab touch-none" } as React.HTMLAttributes<HTMLElement>}
         onAdd={() => onOpenCreate(status.id)}
+        onHide={onHide ? () => onHide(status.id) : undefined}
       >
         <div
           ref={setDropRef}

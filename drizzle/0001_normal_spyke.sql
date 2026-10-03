@@ -1,0 +1,1 @@
+ALTER TABLE `statuses` ADD `hidden_on_board` integer DEFAULT false NOT NULL;

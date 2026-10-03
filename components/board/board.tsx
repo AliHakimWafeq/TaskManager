@@ -20,7 +20,7 @@ import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyb
 import { useCallback, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CreateTaskDialog } from "@/components/task/create-task-dialog";
-import { reorderStatuses } from "@/lib/actions/statuses";
+import { reorderStatuses, updateStatus } from "@/lib/actions/statuses";
 import { moveTask } from "@/lib/actions/tasks";
 import type { Status } from "@/lib/db/schema";
 import type { ProjectMeta } from "@/lib/queries/meta";
@@ -42,7 +42,17 @@ const draggedTop = (a: Active) => a.rect.current.translated?.top ?? null;
 const isCol = (id: string | number) => String(id).startsWith("col:");
 const stripCol = (id: string | number) => String(id).slice(4);
 
-export function Board({ meta, statuses, tasks }: { meta: ProjectMeta; statuses: Status[]; tasks: TaskRow[] }) {
+export function Board({
+  meta,
+  statuses,
+  visibleStatusIds,
+  tasks,
+}: {
+  meta: ProjectMeta;
+  statuses: Status[];
+  visibleStatusIds: string[];
+  tasks: TaskRow[];
+}) {
   const tasksById = new Map(tasks.map((t) => [t.id, t]));
   const serverColumns = buildColumns(statuses, tasks);
   const serverKey = JSON.stringify({ s: statuses.map((s) => s.id), c: serverColumns });
@@ -58,7 +68,22 @@ export function Board({ meta, statuses, tasks }: { meta: ProjectMeta; statuses: 
   }
 
   const statusById = new Map(statuses.map((s) => [s.id, s]));
-  const orderedStatuses = state.statusOrder.map((id) => statusById.get(id)).filter((s): s is Status => !!s);
+  const visible = new Set(visibleStatusIds);
+  const orderedStatuses = state.statusOrder
+    .filter((id) => visible.has(id))
+    .map((id) => statusById.get(id))
+    .filter((s): s is Status => !!s);
+
+  function hideColumn(statusId: string) {
+    if (orderedStatuses.length <= 1) {
+      toast.error("At least one column has to stay visible");
+      return;
+    }
+    start(async () => {
+      const res = await updateStatus({ id: statusId, hidden: true });
+      if (!res.ok) toast.error(res.error);
+    });
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -171,7 +196,7 @@ export function Board({ meta, statuses, tasks }: { meta: ProjectMeta; statuses: 
         onDragEnd={onDragEnd}
         onDragCancel={() => setActive(null)}
       >
-        <SortableContext items={state.statusOrder.map(colId)} strategy={horizontalListSortingStrategy}>
+        <SortableContext items={orderedStatuses.map((s) => colId(s.id))} strategy={horizontalListSortingStrategy}>
           <div className="flex h-full gap-3 overflow-x-auto px-4 py-3">
             {orderedStatuses.map((s) => (
               <BoardColumn
@@ -180,8 +205,14 @@ export function Board({ meta, statuses, tasks }: { meta: ProjectMeta; statuses: 
                 projectId={meta.project.id}
                 tasks={(state.columns[s.id] ?? []).map((id) => tasksById.get(id)).filter((t): t is TaskRow => !!t)}
                 onOpenCreate={setCreateFor}
+                onHide={hideColumn}
               />
             ))}
+            {orderedStatuses.length === 0 && (
+              <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+                No columns match the current status filter.
+              </div>
+            )}
           </div>
         </SortableContext>
         <DragOverlay dropAnimation={{ duration: 150 }}>

@@ -36,6 +36,7 @@ export const statuses = sqliteTable(
     color: text("color").notNull().default("#9ca3af"),
     type: text("type", { enum: STATUS_TYPES }).notNull().default("unstarted"),
     position: integer("position").notNull().default(0),
+    hidden: integer("hidden_on_board", { mode: "boolean" }).notNull().default(false),
   },
   (t) => [index("statuses_project_idx").on(t.projectId, t.position)],
 );

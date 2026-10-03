@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, GripVertical, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -162,7 +163,7 @@ function StatusRow({
   });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
-  function save(patch: { name?: string; color?: string; type?: StatusType }) {
+  function save(patch: { name?: string; color?: string; type?: StatusType; hidden?: boolean }) {
     updateStatus({ id: status.id, ...patch }).then((res) => {
       if (!res.ok) toast.error(res.error);
       router.refresh();
@@ -239,6 +240,23 @@ function StatusRow({
       <span className="w-14 text-right font-mono text-xs text-muted-foreground">
         {count} {count === 1 ? "task" : "tasks"}
       </span>
+
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={status.hidden ? "Show on board" : "Hide from board"}
+              className={status.hidden ? "text-muted-foreground" : ""}
+              onClick={() => save({ hidden: !status.hidden })}
+            />
+          }
+        >
+          {status.hidden ? <EyeOff /> : <Eye />}
+        </TooltipTrigger>
+        <TooltipContent>{status.hidden ? "Hidden on board. Click to show" : "Shown on board. Click to hide"}</TooltipContent>
+      </Tooltip>
 
       <Button
         variant="ghost"

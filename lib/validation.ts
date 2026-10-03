@@ -37,6 +37,7 @@ export const updateStatusSchema = z.object({
   name: z.string().trim().min(1).max(40).optional(),
   color: hexColor.optional(),
   type: z.enum(STATUS_TYPES).optional(),
+  hidden: z.boolean().optional(),
 });
 
 export const createTaskSchema = z.object({
