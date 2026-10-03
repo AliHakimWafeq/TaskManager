@@ -3,6 +3,7 @@
 import { Inbox, KanbanSquare, List, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/db/schema";
 
@@ -44,8 +45,9 @@ export function SidebarNav({ projects }: { projects: Project[] }) {
       </div>
 
       <div>
-        <div className="mb-1 px-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="mb-1 flex items-center justify-between pr-1 pl-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           Projects
+          <CreateProjectDialog />
         </div>
         <div className="flex flex-col gap-0.5">
           {projects.length === 0 && (

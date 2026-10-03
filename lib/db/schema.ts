@@ -8,17 +8,9 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
-export const PRIORITIES = ["none", "low", "medium", "high", "urgent"] as const;
-export type Priority = (typeof PRIORITIES)[number];
+import { PRIORITIES, STATUS_TYPES } from "@/lib/enums";
 
-export const STATUS_TYPES = [
-  "backlog",
-  "unstarted",
-  "started",
-  "completed",
-  "cancelled",
-] as const;
-export type StatusType = (typeof STATUS_TYPES)[number];
+export type { Priority, StatusType } from "@/lib/enums";
 
 const now = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
 

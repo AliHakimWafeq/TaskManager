@@ -1,4 +1,4 @@
-import type { Priority, StatusType } from "@/lib/db/schema";
+import type { Priority, StatusType } from "@/lib/enums";
 
 export const PRIORITY_META: Record<
   Priority,

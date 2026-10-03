@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PRIORITIES, STATUS_TYPES } from "@/lib/db/schema";
+import { PRIORITIES, STATUS_TYPES } from "@/lib/enums";
 
 export const id = z.string().min(1).max(64);
 export const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Invalid color");
