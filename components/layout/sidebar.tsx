@@ -1,11 +1,13 @@
 import { CheckSquare2 } from "lucide-react";
 import Link from "next/link";
-import { listProjects } from "@/lib/queries/projects";
+import { NewTaskButton } from "@/components/task/new-task-button";
+import { listProjectsWithMeta } from "@/lib/queries/meta";
 import { SidebarNav } from "./sidebar-nav";
 import { ThemeToggle } from "./theme-toggle";
 
 export function Sidebar() {
-  const projects = listProjects();
+  const meta = listProjectsWithMeta();
+  const projects = meta.map((m) => m.project);
   return (
     <aside className="flex h-full w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex h-12 items-center justify-between px-3">
@@ -14,6 +16,9 @@ export function Sidebar() {
           Tasks
         </Link>
         <ThemeToggle />
+      </div>
+      <div className="px-3 pb-2">
+        <NewTaskButton projects={meta} />
       </div>
       <div className="flex-1 overflow-y-auto py-1">
         <SidebarNav projects={projects} />

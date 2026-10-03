@@ -16,7 +16,13 @@ export const metadata: Metadata = {
   description: "Personal task manager",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+  modal,
+}: {
+  children: React.ReactNode;
+  modal: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
@@ -30,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Sidebar />
               <main className="flex min-w-0 flex-1 flex-col overflow-hidden">{children}</main>
             </div>
+            {modal}
             <Toaster position="bottom-right" />
           </TooltipProvider>
         </ThemeProvider>

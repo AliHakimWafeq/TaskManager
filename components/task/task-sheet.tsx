@@ -1,0 +1,33 @@
+"use client";
+
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+
+/** Side panel used by the intercepting route. Closes by navigating back. */
+export function TaskSheet({ children, title }: { children: React.ReactNode; title: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [open, setOpen] = useState(true);
+
+  // If the user navigates elsewhere while the slot is still mounted, hide it.
+  if (!pathname.startsWith("/issue/")) return null;
+
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) {
+          setOpen(false);
+          router.back();
+        }
+      }}
+    >
+      <SheetContent side="right" className="w-full gap-0 overflow-y-auto p-6 pt-5 sm:max-w-2xl">
+        <SheetTitle className="sr-only">{title}</SheetTitle>
+        <SheetDescription className="sr-only">Task details</SheetDescription>
+        {children}
+      </SheetContent>
+    </Sheet>
+  );
+}
