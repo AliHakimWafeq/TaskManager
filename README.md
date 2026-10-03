@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Task Manager
 
-## Getting Started
+A self-hosted, single-user task manager in the spirit of Linear: projects with their own kanban workflow, rich task descriptions with inline images, labels, priorities, due dates, subtasks, a list view, a cross-project inbox, filters, and a command palette.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router, Server Actions, Route Handlers), React 19, TypeScript
+- Tailwind CSS 4 + shadcn/ui
+- SQLite via Drizzle ORM + better-sqlite3 (database file and uploaded images live in `data/`)
+- dnd-kit for drag and drop, Tiptap for the description editor
+
+## Run with Docker
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. The `./data` folder on the host holds `app.db` and `uploads/`, so your data survives rebuilds. Migrations run automatically on startup.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm install
+pnpm db:seed      # optional: demo project with a dozen tasks
+pnpm dev
+```
 
-## Learn More
+Other scripts:
 
-To learn more about Next.js, take a look at the following resources:
+| Script | What it does |
+|---|---|
+| `pnpm db:generate` | Generate a new SQL migration after editing `lib/db/schema.ts` |
+| `pnpm db:migrate` | Apply migrations to `data/app.db` |
+| `pnpm db:studio` | Open Drizzle Studio |
+| `pnpm typecheck` / `pnpm lint` / `pnpm test` | Type check, lint, unit tests |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Set `DATA_DIR` to change where the database and uploads are stored (default `./data`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Keyboard shortcuts
 
-## Deploy on Vercel
+| Key | Action |
+|---|---|
+| `C` | New task |
+| `⌘K` / `Ctrl+K` | Command palette: search tasks, jump to projects |
+| `Esc` | Close the task panel |
+| `⌘↵` | Submit the new-task dialog |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Layout
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/                 routes (inbox, projects/[key] board|list|settings, issue/[id], @modal sheet, api/uploads)
+components/          board/, task/, list/, projects/, layout/, ui/ (shadcn)
+lib/db/              Drizzle schema, connection, migrations runner, seed
+lib/actions/         Server Actions (projects, statuses, labels, tasks, search)
+lib/queries/         read helpers used by server components
+lib/filters.ts       URL search params <-> SQL predicates
+drizzle/             generated migrations (committed)
+```

@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { NEW_TASK_EVENT } from "@/components/layout/command-palette";
 import type { ProjectMeta } from "@/lib/queries/meta";
 import { CreateTaskDialog } from "./create-task-dialog";
 
@@ -27,8 +28,13 @@ export function NewTaskButton({ projects }: { projects: ProjectMeta[] }) {
         setOpen(true);
       }
     }
+    const onEvent = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(NEW_TASK_EVENT, onEvent);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(NEW_TASK_EVENT, onEvent);
+    };
   }, []);
 
   if (projects.length === 0) return null;

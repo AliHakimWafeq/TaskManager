@@ -1,5 +1,6 @@
 import { CheckSquare2 } from "lucide-react";
 import Link from "next/link";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { NewTaskButton } from "@/components/task/new-task-button";
 import { listProjectsWithMeta } from "@/lib/queries/meta";
 import { SidebarNav } from "./sidebar-nav";
@@ -23,6 +24,11 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto py-1">
         <SidebarNav projects={projects} />
       </div>
+      <div className="flex items-center justify-between border-t border-sidebar-border px-3 py-2 text-[11px] text-muted-foreground">
+        <span>Search</span>
+        <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">⌘K</kbd>
+      </div>
+      <CommandPalette projects={projects} />
     </aside>
   );
 }
