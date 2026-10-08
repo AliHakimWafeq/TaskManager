@@ -21,7 +21,7 @@ RUN pnpm build
 # ---- runtime
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 DATA_DIR=/app/data
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3001 HOSTNAME=0.0.0.0 DATA_DIR=/app/data
 RUN groupadd -r app && useradd -r -g app -d /app app && mkdir -p /app/data && chown -R app:app /app
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
@@ -29,5 +29,5 @@ COPY --from=build --chown=app:app /app/public ./public
 COPY --from=build --chown=app:app /app/drizzle ./drizzle
 USER app
 VOLUME ["/app/data"]
-EXPOSE 3000
+EXPOSE 3001
 CMD ["node", "server.js"]
