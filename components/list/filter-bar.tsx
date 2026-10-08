@@ -107,7 +107,7 @@ export function FilterBar({
           aria-label="Search tasks"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search…"
+          placeholder="Search title or ID…"
           className="h-7 w-44 rounded-md border bg-transparent pr-6 pl-7 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 [&::-webkit-search-cancel-button]:hidden"
         />
         {q && (

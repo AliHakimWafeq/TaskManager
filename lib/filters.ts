@@ -55,10 +55,42 @@ export function likePattern(q: string) {
   return `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
 }
 
+/**
+ * How a search box query should be interpreted.
+ * "BLB-104" (any case, optional "#") targets that ticket; "104" or "#104" targets ticket
+ * number 104 in any project. Everything is also matched against titles.
+ */
+export function parseSearchQuery(raw: string): { text: string; key: string | null; number: number | null } {
+  const text = raw.trim().slice(0, 100);
+  const id = /^#?([A-Za-z][A-Za-z0-9]{0,9})-(\d{1,9})$/.exec(text);
+  if (id) return { text, key: id[1].toUpperCase(), number: Number(id[2]) };
+  const num = /^#?(\d{1,9})$/.exec(text);
+  if (num) return { text, key: null, number: Number(num[1]) };
+  return { text, key: null, number: null };
+}
+
+/** SQL for a ticket-ID match, or null when the query isn't an ID. */
+export function idMatchCondition(raw: string): SQL | null {
+  const { key, number } = parseSearchQuery(raw);
+  if (number === null) return null;
+  if (key) {
+    return sql`(${tasks.number} = ${number} and exists (select 1 from projects p where p.id = ${tasks.projectId} and p.key = ${key}))`;
+  }
+  return sql`${tasks.number} = ${number}`;
+}
+
+/** Search box predicate: title contains the text, or the query is this ticket's ID. */
+export function searchCondition(raw: string): SQL {
+  const { text } = parseSearchQuery(raw);
+  const title = sql`${tasks.title} like ${likePattern(text)} escape '\\'`;
+  const id = idMatchCondition(raw);
+  return id ? sql`(${title} or ${id})` : title;
+}
+
 /** Build the SQL predicate for queryTasks. `today` is the viewer's YYYY-MM-DD. */
 export function filtersToWhere(f: Filters, today: string): SQL | undefined {
   const conds: SQL[] = [];
-  if (f.q) conds.push(sql`${tasks.title} like ${likePattern(f.q)} escape '\\'`);
+  if (f.q) conds.push(searchCondition(f.q));
   if (f.status.length) conds.push(inArray(tasks.statusId, f.status));
   if (f.priority.length) conds.push(inArray(tasks.priority, f.priority));
   if (f.project.length) conds.push(inArray(tasks.projectId, f.project));

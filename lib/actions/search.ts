@@ -3,7 +3,7 @@
 import { desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { tasks } from "@/lib/db/schema";
-import { likePattern } from "@/lib/filters";
+import { idMatchCondition, likePattern, parseSearchQuery, searchCondition } from "@/lib/filters";
 
 export type SearchHit = {
   id: string;
@@ -18,15 +18,19 @@ export type SearchHit = {
 export async function searchTasks(query: string): Promise<SearchHit[]> {
   const q = query.trim();
   if (!q) return [];
-  const pattern = likePattern(q.slice(0, 100));
+  // Titles, exact IDs ("BLB-104", "104"), and partial IDs while typing ("BLB-10").
+  const { text } = parseSearchQuery(q);
+  const partialId = sql`(select p.key || '-' || ${tasks.number} from projects p where p.id = ${tasks.projectId}) like ${likePattern(text.replace(/^#/, "")).toUpperCase()} escape '\\'`;
+  const exact = idMatchCondition(q);
   const rows = db.query.tasks
     .findMany({
-      where: sql`(${tasks.title} like ${pattern} escape '\\' or (select p.key || '-' || ${tasks.number} from projects p where p.id = ${tasks.projectId}) like ${pattern.toUpperCase()} escape '\\')`,
+      where: sql`(${searchCondition(q)} or ${partialId})`,
       with: {
         project: { columns: { key: true, name: true, color: true } },
         status: { columns: { type: true, color: true } },
       },
-      orderBy: [desc(tasks.updatedAt)],
+      // Exact ID hits first, then most recently updated.
+      orderBy: [...(exact ? [sql`case when ${exact} then 0 else 1 end`] : []), desc(tasks.updatedAt)],
       limit: 15,
     })
     .sync();

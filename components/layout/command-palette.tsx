@@ -80,7 +80,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       description="Search tasks and jump to pages"
     >
       <Command shouldFilter={!query.trim() || hits.length === 0}>
-      <CommandInput placeholder="Search tasks, or type a command…" value={query} onValueChange={setQuery} />
+      <CommandInput placeholder="Search tasks by title or ID (e.g. BLB-104), or type a command…" value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No results.</CommandEmpty>
         {hits.length > 0 && (
