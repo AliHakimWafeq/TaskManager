@@ -78,25 +78,32 @@ export function TaskDetail({
   return (
     <div className={cn("flex flex-col gap-5", mode === "page" && "mx-auto w-full max-w-3xl px-8 py-8")}>
       <div className={cn("flex min-h-7 items-center gap-2 text-xs text-muted-foreground", mode === "sheet" && "pr-9")}>
-        <Link href={`/projects/${task.project.key}`} className="flex shrink-0 items-center gap-1.5 hover:text-foreground">
-          <span className="size-2 rounded-sm" style={{ backgroundColor: task.project.color }} />
-          {task.project.name}
-        </Link>
-        <span>›</span>
-        {task.parent && (
-          <>
-            <Link
-              href={`/issue/${task.parent.identifier}`}
-              replace={replace}
-              className="min-w-0 truncate hover:text-foreground"
-              title={task.parent.title}
-            >
-              <span className="font-mono">{task.parent.identifier}</span> {task.parent.title}
-            </Link>
-            <span>›</span>
-          </>
-        )}
-        <span className="shrink-0 font-mono">{task.identifier}</span>
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2">
+          <Link
+            href={`/projects/${task.project.key}`}
+            className="flex max-w-[40%] min-w-0 items-center gap-1.5 rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="size-2 shrink-0 rounded-sm" style={{ backgroundColor: task.project.color }} aria-hidden />
+            <span className="truncate">{task.project.name}</span>
+          </Link>
+          <span aria-hidden>›</span>
+          {task.parent && (
+            <>
+              <Link
+                href={`/issue/${task.parent.identifier}`}
+                replace={replace}
+                className="min-w-0 truncate rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                title={task.parent.title}
+              >
+                <span className="font-mono">{task.parent.identifier}</span> {task.parent.title}
+              </Link>
+              <span aria-hidden>›</span>
+            </>
+          )}
+          <span className="shrink-0 font-mono" aria-current="page">
+            {task.identifier}
+          </span>
+        </nav>
         <div className="ml-auto flex items-center gap-0.5">
           <CopyButton text={() => `${window.location.origin}/issue/${task.identifier}`} label="Copy link" icon={<Link2 />} />
           <CopyButton text={() => task.identifier} label="Copy ID" icon={<Copy />} />
@@ -137,7 +144,7 @@ export function TaskDetail({
         defaultValue={task.title}
         rows={1}
         aria-label="Title"
-        className="field-sizing-content w-full resize-none bg-transparent text-xl font-semibold leading-snug outline-none placeholder:text-muted-foreground"
+        className="field-sizing-content -mx-1 w-[calc(100%+0.5rem)] resize-none rounded-md bg-transparent px-1 text-xl font-semibold leading-snug break-words outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
         placeholder="Task title"
         onBlur={(e) => {
           const v = e.target.value.trim();
@@ -145,7 +152,7 @@ export function TaskDetail({
           else e.target.value = task.title;
         }}
         onKeyDown={(e) => {
-          if (e.key === "Enter") {
+          if (e.key === "Enter" && !e.nativeEvent.isComposing) {
             e.preventDefault();
             (e.target as HTMLTextAreaElement).blur();
           }
@@ -250,9 +257,10 @@ function DeleteTaskButton({
             disabled={pending}
             onClick={() =>
               start(async () => {
-                toast.success(`${identifier} deleted`);
                 const res = await onDelete();
+                // A redirecting delete resolves without a result.
                 if (res && !res.ok) toast.error(res.error ?? "Could not delete the task");
+                else toast.success(`${identifier} deleted`);
               })
             }
           >
@@ -268,6 +276,11 @@ function Subtasks({ task, statuses, replace }: { task: TaskDetailData; statuses:
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [pending, start] = useTransition();
+  const [, startToggle] = useTransition();
+  const [optimisticDone, setOptimisticDone] = useOptimistic(
+    {} as Record<string, boolean>,
+    (cur, next: { id: string; done: boolean }) => ({ ...cur, [next.id]: next.done }),
+  );
   const doneStatus = statuses.find((s) => s.type === "completed");
   const openStatus =
     statuses.find((s) => s.type === "unstarted") ?? statuses.find((s) => s.type !== "completed" && s.type !== "cancelled") ?? statuses[0];
@@ -286,6 +299,18 @@ function Subtasks({ task, statuses, replace }: { task: TaskDetailData; statuses:
   }
 
   if (task.parent) return null; // one level of nesting only
+  const isDone = (s: (typeof task.subtasks)[number]) => optimisticDone[s.id] ?? s.status.type === "completed";
+  const doneCount = task.subtasks.filter(isDone).length;
+
+  function toggle(s: (typeof task.subtasks)[number], done: boolean) {
+    const target = done ? doneStatus : openStatus;
+    if (!target) return;
+    startToggle(async () => {
+      setOptimisticDone({ id: s.id, done });
+      const r = await updateTask({ id: s.id, statusId: target.id });
+      if (!r.ok) toast.error(r.error);
+    });
+  }
 
   return (
     <section className="grid gap-1.5">
@@ -293,8 +318,8 @@ function Subtasks({ task, statuses, replace }: { task: TaskDetailData; statuses:
         <h3 className="text-xs font-medium text-muted-foreground">
           Subtasks
           {task.subtaskCount > 0 && (
-            <span className="ml-1.5 font-mono">
-              {task.subtaskDone}/{task.subtaskCount}
+            <span className="ml-1.5 font-mono tabular-nums">
+              {doneCount}/{task.subtaskCount}
             </span>
           )}
         </h3>
@@ -305,34 +330,40 @@ function Subtasks({ task, statuses, replace }: { task: TaskDetailData; statuses:
         )}
       </div>
       {task.subtaskCount > 0 && (
-        <div className="h-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-1 overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-label="Subtasks completed"
+          aria-valuemin={0}
+          aria-valuemax={task.subtaskCount}
+          aria-valuenow={doneCount}
+        >
           <div
-            className="h-full bg-green-500 transition-all"
-            style={{ width: `${(task.subtaskDone / task.subtaskCount) * 100}%` }}
+            className="h-full origin-left bg-green-500 transition-transform"
+            style={{ transform: `scaleX(${doneCount / task.subtaskCount})` }}
           />
         </div>
       )}
       <ul className="divide-y rounded-md border">
         {task.subtasks.map((s) => {
-          const done = s.status.type === "completed";
+          const done = isDone(s);
           return (
             <li key={s.id} className="flex items-center gap-2 px-2 py-1.5 text-[13px]">
               <Checkbox
                 checked={done}
-                aria-label={done ? "Reopen subtask" : "Complete subtask"}
+                aria-label={`${done ? "Reopen" : "Complete"} ${s.identifier} ${s.title}`}
                 disabled={!doneStatus}
-                onCheckedChange={(c) => {
-                  const target = c ? doneStatus : openStatus;
-                  if (!target) return;
-                  updateTask({ id: s.id, statusId: target.id }).then((r) => !r.ok && toast.error(r.error));
-                }}
+                onCheckedChange={(c) => toggle(s, c === true)}
               />
               <StatusIcon type={s.status.type} color={s.status.color} />
               <span className="font-mono text-[11px] text-muted-foreground">{s.identifier}</span>
               <Link
                 href={`/issue/${s.identifier}`}
                 replace={replace}
-                className={cn("flex-1 truncate hover:underline", done && "text-muted-foreground line-through")}
+                className={cn(
+                  "min-w-0 flex-1 truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring",
+                  done && "text-muted-foreground line-through",
+                )}
               >
                 {s.title}
               </Link>
@@ -347,9 +378,10 @@ function Subtasks({ task, statuses, replace }: { task: TaskDetailData; statuses:
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Subtask title, press Enter"
+              aria-label="New subtask title"
               className="h-7 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
               onKeyDown={(e) => {
-                if (e.key === "Enter") add();
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) add();
                 if (e.key === "Escape") {
                   setAdding(false);
                   setTitle("");

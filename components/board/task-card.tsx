@@ -6,7 +6,7 @@ import { CalendarIcon, CheckSquare2, CornerDownRight } from "lucide-react";
 import Link from "next/link";
 import { useToday } from "@/components/layout/today-provider";
 import { PriorityIcon, LabelChip } from "@/components/task/icons";
-import { PRIORITY_META } from "@/lib/constants";
+import { PRIORITY_META, STATUS_TYPE_META } from "@/lib/constants";
 import { formatDue, isOverdue } from "@/lib/dates";
 import type { TaskRow } from "@/lib/queries/tasks";
 import { cn } from "@/lib/utils";
@@ -19,38 +19,44 @@ export function TaskCardContent({ task, dragging }: { task: TaskRow; dragging?: 
     <div
       className={cn(
         "flex flex-col gap-2 rounded-lg border bg-card p-2.5 text-[13px] shadow-xs transition-colors hover:border-foreground/20",
-        dragging && "rotate-[1.5deg] shadow-xl ring-1 ring-ring/40",
+        dragging && "rotate-[1.5deg] shadow-xl ring-1 ring-ring/40 motion-reduce:rotate-0",
       )}
     >
       {task.parent && (
         <div className="-mb-1 flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
-          <CornerDownRight className="size-3 shrink-0" />
+          <CornerDownRight className="size-3 shrink-0" aria-hidden />
+          <span className="sr-only">Subtask of</span>
           <span className="font-mono">{task.parent.identifier}</span>
           <span className="truncate">{task.parent.title}</span>
         </div>
       )}
       <div className="flex items-start gap-2">
         <PriorityIcon priority={task.priority} className={cn("mt-0.5", PRIORITY_META[task.priority].className)} />
-        <span className={cn("line-clamp-3 leading-snug", completed && "text-muted-foreground line-through")}>
+        <span className={cn("line-clamp-3 leading-snug break-words", completed && "text-muted-foreground line-through")}>
           {task.title}
+        </span>
+        <span className="sr-only">
+          , {PRIORITY_META[task.priority].label} priority, {task.status.name} ({STATUS_TYPE_META[task.status.type].label})
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
         <span className="font-mono">{task.identifier}</span>
         {task.dueDate && (
-          <span className={cn("flex items-center gap-1", overdue && "text-red-500")}>
-            <CalendarIcon className="size-3" />
+          <span className={cn("flex items-center gap-1 tabular-nums", overdue && "text-red-600 dark:text-red-400")}>
+            <CalendarIcon className="size-3" aria-hidden />
+            <span className="sr-only">{overdue ? "Overdue, due" : "Due"}</span>
             {formatDue(task.dueDate, today)}
           </span>
         )}
         {task.subtaskCount > 0 && (
-          <span className="flex items-center gap-1">
-            <CheckSquare2 className="size-3" />
+          <span className="flex items-center gap-1 tabular-nums">
+            <CheckSquare2 className="size-3" aria-hidden />
+            <span className="sr-only">Subtasks done:</span>
             {task.subtaskDone}/{task.subtaskCount}
           </span>
         )}
         {task.labels.map((l) => (
-          <LabelChip key={l.id} name={l.name} color={l.color} className="h-4 px-1.5 text-[10px]" />
+          <LabelChip key={l.id} name={l.name} color={l.color} className="h-4 px-1.5" />
         ))}
       </div>
     </div>
@@ -72,13 +78,12 @@ export function SortableTaskCard({ task }: { task: TaskRow }) {
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn("touch-none", isDragging && "opacity-30")}
+      className={cn("touch-manipulation", isDragging && "opacity-30")}
     >
       <Link
         href={`/issue/${task.identifier}`}
         className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
         draggable={false}
-        aria-label={`${task.identifier} ${task.title}`}
         {...dragAttributes}
         {...listeners}
       >

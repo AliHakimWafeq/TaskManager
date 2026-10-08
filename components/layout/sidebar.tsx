@@ -1,6 +1,6 @@
 import { CheckSquare2 } from "lucide-react";
 import Link from "next/link";
-import { ModKbd } from "@/components/layout/kbd";
+import { SearchButton } from "@/components/layout/search-button";
 import { NewTaskButton } from "@/components/task/new-task-button";
 import type { Project } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
@@ -24,10 +24,7 @@ export function Sidebar({ projects, className }: { projects: Project[]; classNam
       <div className="flex-1 overflow-y-auto py-1">
         <SidebarNav projects={projects} />
       </div>
-      <div className="flex items-center justify-between border-t border-sidebar-border px-3 py-2 text-[11px] text-muted-foreground">
-        <span>Search</span>
-        <ModKbd keyLabel="K" />
-      </div>
+      <SearchButton />
     </aside>
   );
 }

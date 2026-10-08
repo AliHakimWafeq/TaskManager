@@ -19,6 +19,7 @@ import type { Project } from "@/lib/db/schema";
 import type { StatusType } from "@/lib/enums";
 
 export const NEW_TASK_EVENT = "taskmanager:new-task";
+export const OPEN_PALETTE_EVENT = "taskmanager:open-palette";
 
 export function CommandPalette({ projects }: { projects: Project[] }) {
   const router = useRouter();
@@ -34,8 +35,13 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
         setOpen((o) => !o);
       }
     }
+    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_PALETTE_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_PALETTE_EVENT, onOpen);
+    };
   }, []);
 
   useEffect(() => {

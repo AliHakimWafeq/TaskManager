@@ -47,7 +47,7 @@ export function StatusPicker({
             variant="outline"
             size={compact ? "icon-xs" : "sm"}
             className={compact ? "size-6 border-transparent" : chip}
-            aria-label="Change status"
+            aria-label={`Status: ${current?.name ?? "none"}`}
           />
         }
       >
@@ -100,7 +100,7 @@ export function PriorityPicker({
             variant="outline"
             size={compact ? "icon-xs" : "sm"}
             className={compact ? "size-6 border-transparent" : chip}
-            aria-label="Change priority"
+            aria-label={`Priority: ${PRIORITY_META[value].label}`}
           />
         }
       >
@@ -154,8 +154,8 @@ export function DueDatePicker({
           <Button
             variant="outline"
             size="sm"
-            className={cn(chip, overdue && "text-red-500 border-red-500/40")}
-            aria-label="Set due date"
+            className={cn(chip, "tabular-nums", overdue && "border-red-500/40 text-red-600 dark:text-red-400")}
+            aria-label={`Due date: ${value ? `${formatDue(value, today)}${overdue ? ", overdue" : ""}` : "none"}`}
           />
         }
       >
@@ -242,17 +242,18 @@ export function LabelPicker({
             variant="outline"
             size="sm"
             className={cn(chip, "max-w-full")}
-            aria-label="Edit labels"
+            aria-label={`Labels: ${selected.length ? selected.map((l) => l.name).join(", ") : "none"}`}
           />
         }
       >
         <Tag className="size-3.5" />
         {selected.length === 0 && !compact && "Labels"}
         {selected.length > 0 && (
-          <span className="flex flex-wrap items-center gap-1">
-            {selected.map((l) => (
+          <span className="flex min-w-0 items-center gap-1">
+            {selected.slice(0, 3).map((l) => (
               <LabelChip key={l.id} name={l.name} color={l.color} className="h-4 border-0 bg-muted px-1.5" />
             ))}
+            {selected.length > 3 && <span className="tabular-nums text-muted-foreground">+{selected.length - 3}</span>}
           </span>
         )}
       </PopoverTrigger>
@@ -311,7 +312,14 @@ export function ParentPicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        render={<Button variant="outline" size="sm" className={cn(chip, "max-w-60")} aria-label="Set parent task" />}
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(chip, "max-w-60")}
+            aria-label={`Parent task: ${label ? `${label} ${selected?.title}` : "none"}`}
+          />
+        }
       >
         <CornerDownRight className="size-3.5" />
         {label ? (

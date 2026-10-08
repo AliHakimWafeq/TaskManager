@@ -18,15 +18,16 @@ import { SortableTaskCard } from "./task-card";
 
 /** Keeps clicks and key presses on header buttons from starting a column drag. */
 const stopDrag = {
-  onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
-  onKeyDown: (e: React.KeyboardEvent) => e.stopPropagation(),
+  onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
+  onTouchStart: (e: React.TouchEvent) => e.stopPropagation(),
 };
 
 export function ColumnShell({
   status,
   count,
   children,
-  handleProps,
+  headerProps,
+  gripProps,
   onAdd,
   onHide,
   dragging,
@@ -34,7 +35,10 @@ export function ColumnShell({
   status: Status;
   count: number;
   children: React.ReactNode;
-  handleProps?: React.HTMLAttributes<HTMLElement>;
+  /** Pointer/touch drag listeners for the whole header (no semantics). */
+  headerProps?: React.HTMLAttributes<HTMLDivElement>;
+  /** Accessible drag handle: attributes, keyboard listener and activator ref. */
+  gripProps?: React.ButtonHTMLAttributes<HTMLButtonElement> & { ref?: (el: HTMLElement | null) => void };
   onAdd?: () => void;
   onHide?: () => void;
   dragging?: boolean;
@@ -47,13 +51,27 @@ export function ColumnShell({
       )}
     >
       <div
-        {...handleProps}
-        className={cn("group/col flex h-10 items-center gap-2 px-3", handleProps?.className)}
+        {...headerProps}
+        className={cn("group/col flex h-10 items-center gap-2 px-3", headerProps && "cursor-grab touch-manipulation")}
       >
         <StatusIcon type={status.type} color={status.color} />
-        <span className="truncate text-[13px] font-medium">{status.name}</span>
-        <span className="font-mono text-[11px] text-muted-foreground">{count}</span>
-        <GripHorizontal className="ml-auto size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/col:opacity-100" />
+        <h2 className="truncate text-[13px] font-medium">{status.name}</h2>
+        <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+          {count}
+          <span className="sr-only"> tasks</span>
+        </span>
+        {gripProps ? (
+          <button
+            type="button"
+            {...gripProps}
+            aria-label={`Reorder ${status.name} column`}
+            className="reveal-on-hover ml-auto flex size-6 cursor-grab items-center justify-center rounded-md text-muted-foreground opacity-0 outline-none transition-opacity group-hover/col:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <GripHorizontal className="size-3.5" />
+          </button>
+        ) : (
+          <GripHorizontal className="ml-auto size-3.5 text-muted-foreground" aria-hidden />
+        )}
         {onHide && (
           <Tooltip>
             <TooltipTrigger
@@ -63,7 +81,7 @@ export function ColumnShell({
                   size="icon-xs"
                   {...stopDrag}
                   aria-label={`Hide ${status.name} column`}
-                  className="opacity-0 transition-opacity group-hover/col:opacity-100 focus-visible:opacity-100"
+                  className="reveal-on-hover opacity-0 transition-opacity group-hover/col:opacity-100 focus-visible:opacity-100"
                   onClick={onHide}
                 />
               }
@@ -97,7 +115,7 @@ export function BoardColumn({
   onOpenCreate: (statusId: string) => void;
   onHide?: (statusId: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: `col:${status.id}`,
     data: { type: "column", status },
   });
@@ -115,14 +133,15 @@ export function BoardColumn({
       <ColumnShell
         status={status}
         count={tasks.length}
-        handleProps={
-          {
-            ...attributes,
-            ...listeners,
-            "aria-label": `${status.name} column, press Space to reorder`,
-            className: "cursor-grab touch-none rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          } as React.HTMLAttributes<HTMLElement>
-        }
+        headerProps={{
+          onMouseDown: listeners?.onMouseDown as React.MouseEventHandler<HTMLDivElement> | undefined,
+          onTouchStart: listeners?.onTouchStart as React.TouchEventHandler<HTMLDivElement> | undefined,
+        }}
+        gripProps={{
+          ...(attributes as unknown as React.ButtonHTMLAttributes<HTMLButtonElement>),
+          onKeyDown: listeners?.onKeyDown as React.KeyboardEventHandler<HTMLButtonElement> | undefined,
+          ref: setActivatorNodeRef,
+        }}
         onAdd={() => onOpenCreate(status.id)}
         onHide={onHide ? () => onHide(status.id) : undefined}
       >
@@ -170,7 +189,7 @@ function QuickAdd({ projectId, statusId }: { projectId: string; statusId: string
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="mt-2 flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Plus className="size-3.5" /> Add task
       </button>
@@ -184,9 +203,10 @@ function QuickAdd({ projectId, statusId }: { projectId: string; statusId: string
         disabled={pending}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Task title, Enter to add"
+        aria-label="New task title"
         className="h-7 border-0 bg-transparent shadow-none focus-visible:ring-0"
         onKeyDown={(e) => {
-          if (e.key === "Enter") submit();
+          if (e.key === "Enter" && !e.nativeEvent.isComposing) submit();
           if (e.key === "Escape") {
             setOpen(false);
             setTitle("");

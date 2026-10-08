@@ -103,8 +103,10 @@ export function ToolbarButton({ item, size = "sm" }: { item: Item; size?: "sm" |
             aria-pressed={item.isActive}
             onMouseDown={(e) => e.preventDefault()}
             onClick={item.run}
+            tabIndex={-1}
+            data-toolbar-item
             className={cn(
-              "flex shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              "flex shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
               size === "sm" ? "size-7" : "size-8",
               item.isActive && "bg-muted text-foreground",
             )}
@@ -141,7 +143,26 @@ export function Toolbar({
     <div
       role="toolbar"
       aria-label="Formatting"
+      aria-orientation="horizontal"
       className={cn("flex flex-wrap items-center gap-0.5", className)}
+      // Roving focus: one Tab stop, arrow keys move between buttons.
+      tabIndex={0}
+      onFocus={(e) => {
+        if (e.target === e.currentTarget) e.currentTarget.querySelector<HTMLElement>("[data-toolbar-item]")?.focus();
+      }}
+      onKeyDown={(e) => {
+        const items = [...e.currentTarget.querySelectorAll<HTMLElement>("[data-toolbar-item]")];
+        const i = items.indexOf(document.activeElement as HTMLElement);
+        let next = -1;
+        if (e.key === "ArrowRight") next = (i + 1) % items.length;
+        else if (e.key === "ArrowLeft") next = (i - 1 + items.length) % items.length;
+        else if (e.key === "Home") next = 0;
+        else if (e.key === "End") next = items.length - 1;
+        if (next >= 0) {
+          e.preventDefault();
+          items[next]?.focus();
+        }
+      }}
     >
       {blocks.slice(0, 3).map((i) => <ToolbarButton key={i.key} item={i} />)}
       <span className="mx-1 h-4 w-px shrink-0 bg-border" />

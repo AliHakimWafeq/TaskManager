@@ -60,7 +60,7 @@ export function LabelsManager({ projectId, labels }: { projectId: string; labels
               <button
                 type="button"
                 aria-label="Label color"
-                className="size-5 shrink-0 rounded-md"
+                className="size-5 shrink-0 rounded-md ring-offset-2 ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 style={{ backgroundColor: color }}
               />
             }
@@ -73,6 +73,7 @@ export function LabelsManager({ projectId, labels }: { projectId: string; labels
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="New label name"
+          aria-label="New label name"
           className="h-8 max-w-xs"
         />
         <Label className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
@@ -102,8 +103,8 @@ function LabelRowItem({ label }: { label: LabelRow }) {
           render={
             <button
               type="button"
-              aria-label="Change color"
-              className="size-3.5 shrink-0 rounded-full"
+              aria-label={`Color of ${label.name}`}
+              className="size-3.5 shrink-0 rounded-full ring-offset-2 ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-ring"
               style={{ backgroundColor: label.color }}
             />
           }
@@ -115,7 +116,7 @@ function LabelRowItem({ label }: { label: LabelRow }) {
       <Input
         key={label.name}
         defaultValue={label.name}
-        aria-label="Label name"
+        aria-label={`Name of ${label.name}`}
         className="h-7 min-w-28 flex-1 border-transparent bg-transparent text-[13px] shadow-none hover:border-input focus-visible:border-ring md:text-[13px] dark:bg-transparent"
         onBlur={(e) => {
           const v = e.target.value.trim();
@@ -128,7 +129,17 @@ function LabelRowItem({ label }: { label: LabelRow }) {
       />
       {label.projectId === null && (
         <Tooltip>
-          <TooltipTrigger render={<Globe className="size-3.5 text-muted-foreground" />} />
+          <TooltipTrigger
+            render={
+              <span
+                tabIndex={0}
+                className="rounded-sm text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            }
+          >
+            <Globe className="size-3.5" aria-hidden />
+            <span className="sr-only">Global label</span>
+          </TooltipTrigger>
           <TooltipContent>Global label, available in every project</TooltipContent>
         </Tooltip>
       )}

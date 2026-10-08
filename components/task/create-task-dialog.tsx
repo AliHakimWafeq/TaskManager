@@ -203,7 +203,7 @@ export function CreateTaskDialog({
                 Cancel
               </Button>
               <Button type="submit" size="sm" disabled={pending || !title.trim()}>
-                Create task
+                {pending ? "Creating…" : "Create task"}
                 <ModKbd keyLabel="↵" className="ml-1 border-0 bg-primary-foreground/20" />
               </Button>
             </div>

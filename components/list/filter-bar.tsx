@@ -101,19 +101,21 @@ export function FilterBar({
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
       <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <input
+          type="search"
+          aria-label="Search tasks"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search…"
-          className="h-7 w-44 rounded-md border bg-transparent pr-6 pl-7 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+          className="h-7 w-44 rounded-md border bg-transparent pr-6 pl-7 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 [&::-webkit-search-cancel-button]:hidden"
         />
         {q && (
           <button
             type="button"
             aria-label="Clear search"
             onClick={() => setQ("")}
-            className="absolute top-1/2 right-1.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-3" />
           </button>
@@ -193,9 +195,9 @@ function MultiFilter({
         {selected.length > 0 && (
           <span className="flex items-center gap-1 border-l pl-1.5">
             {selected.slice(0, 2).map((o) => (
-              <span key={o.value} className="flex items-center gap-1">
+              <span key={o.value} className="flex max-w-28 min-w-0 items-center gap-1">
                 {o.icon}
-                {o.label}
+                <span className="truncate">{o.label}</span>
               </span>
             ))}
             {selected.length > 2 && <span className="text-muted-foreground">+{selected.length - 2}</span>}
@@ -229,7 +231,8 @@ function MultiFilter({
                         checked ? "border-primary bg-primary text-primary-foreground" : "opacity-50",
                       )}
                     >
-                      {checked && <Check className="size-3" />}
+                      {checked && <Check className="size-3" aria-hidden />}
+                      <span className="sr-only">{checked ? "Selected:" : "Not selected:"}</span>
                     </span>
                     {o.icon}
                     {o.label}

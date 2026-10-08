@@ -129,6 +129,7 @@ export function StatusesManager({
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="New status name"
+          aria-label="New status name"
           className="h-8 max-w-xs"
         />
         <Button type="submit" size="sm" variant="outline" disabled={pending || !newName.trim()}>
@@ -174,12 +175,12 @@ function StatusRow({
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 rounded-md border bg-card px-2 py-1.5 ${isDragging ? "z-10 shadow-lg" : ""}`}
+      className={`flex flex-wrap items-center gap-2 rounded-md border bg-card px-2 py-1.5 sm:flex-nowrap ${isDragging ? "z-10 shadow-lg" : ""}`}
     >
       <button
         type="button"
-        className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
-        aria-label="Drag to reorder"
+        className="cursor-grab touch-none rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+        aria-label={`Reorder ${status.name}`}
         {...attributes}
         {...listeners}
       >
@@ -191,8 +192,8 @@ function StatusRow({
           render={
             <button
               type="button"
-              aria-label="Change color"
-              className="size-3.5 shrink-0 rounded-full ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              aria-label={`Color of ${status.name}`}
+              className="size-3.5 shrink-0 rounded-full ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               style={{ backgroundColor: status.color }}
             />
           }
@@ -205,7 +206,7 @@ function StatusRow({
       <Input
         key={status.name}
         defaultValue={status.name}
-        aria-label="Status name"
+        aria-label={`Name of ${status.name}`}
         className="h-7 min-w-28 flex-1 border-transparent bg-transparent text-[13px] shadow-none hover:border-input focus-visible:border-ring md:text-[13px] dark:bg-transparent"
         onBlur={(e) => {
           const v = e.target.value.trim();
@@ -226,7 +227,7 @@ function StatusRow({
         items={typeItems}
         onValueChange={(v) => v && v !== status.type && save({ type: v as StatusType })}
       >
-        <SelectTrigger size="sm" className="w-28 shrink-0 text-xs" aria-label="Status type">
+        <SelectTrigger size="sm" className="w-28 shrink-0 text-xs" aria-label={`Type of ${status.name}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -239,11 +240,11 @@ function StatusRow({
       </Select>
 
       <span
-        className="w-8 shrink-0 text-right font-mono text-xs text-muted-foreground"
+        className="w-8 shrink-0 text-right font-mono text-xs text-muted-foreground tabular-nums"
         title={`${count} ${count === 1 ? "task" : "tasks"}`}
-        aria-label={`${count} ${count === 1 ? "task" : "tasks"}`}
       >
         {count}
+        <span className="sr-only"> {count === 1 ? "task" : "tasks"}</span>
       </span>
 
       <Tooltip>
@@ -252,7 +253,7 @@ function StatusRow({
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label={status.hidden ? "Show on board" : "Hide from board"}
+              aria-label={status.hidden ? `Show ${status.name} on board` : `Hide ${status.name} from board`}
               className={status.hidden ? "text-muted-foreground" : ""}
               onClick={() => save({ hidden: !status.hidden })}
             />
@@ -266,7 +267,7 @@ function StatusRow({
       <Button
         variant="ghost"
         size="icon-xs"
-        aria-label="Delete status"
+        aria-label={`Delete ${status.name}`}
         disabled={!canDelete}
         onClick={onDelete}
         className="text-muted-foreground hover:text-destructive"

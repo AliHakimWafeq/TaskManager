@@ -112,7 +112,7 @@ export function CreateProjectDialog({ trigger }: { trigger?: React.ReactElement 
               Cancel
             </Button>
             <Button type="submit" disabled={pending || !name.trim() || key.length < 2}>
-              Create project
+              {pending ? "Creating…" : "Create project"}
             </Button>
           </DialogFooter>
         </form>

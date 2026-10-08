@@ -81,7 +81,8 @@ export function ColumnVisibility({
                         visible ? "border-primary bg-primary text-primary-foreground" : "opacity-50",
                       )}
                     >
-                      {visible && <Check className="size-3" />}
+                      {visible && <Check className="size-3" aria-hidden />}
+                      <span className="sr-only">{visible ? "Shown:" : "Hidden:"}</span>
                     </span>
                     <StatusIcon type={s.type} color={s.color} />
                     <span className="truncate">{s.name}</span>

@@ -5,7 +5,8 @@ import { TaskTable } from "@/components/list/task-table";
 import { getPreferences } from "@/lib/preferences";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 import { Button } from "@/components/ui/button";
-import { filtersToWhere, parseFilters, type SearchParams } from "@/lib/filters";
+import Link from "next/link";
+import { filtersToWhere, hasActiveFilters, parseFilters, type SearchParams } from "@/lib/filters";
 import { listAllLabels } from "@/lib/queries/labels";
 import { listProjects } from "@/lib/queries/projects";
 import { queryTasks } from "@/lib/queries/tasks";
@@ -50,8 +51,20 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
-        <TaskTable tasks={tasks} today={prefs.today} showProject emptyText="No tasks yet. Press C to create one." />
+        <TaskTable tasks={tasks} today={prefs.today} showProject emptyText={hasActiveFilters(filters) ? <FilteredEmpty href="/inbox" /> : "No tasks yet. Press C to create one."}
+        />
       </div>
+    </>
+  );
+}
+
+function FilteredEmpty({ href }: { href: string }) {
+  return (
+    <>
+      <span>No tasks match these filters.</span>
+      <Link href={href} className="rounded-sm text-foreground underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        Clear filters
+      </Link>
     </>
   );
 }

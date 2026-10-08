@@ -14,15 +14,16 @@ export function ColorPicker({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap gap-1.5", className)}>
+    <div role="radiogroup" aria-label="Color" className={cn("flex flex-wrap gap-1.5", className)}>
       {PALETTE.map((c) => (
         <button
           key={c}
           type="button"
+          role="radio"
           aria-label={PALETTE_NAMES[c] ?? c}
-          aria-pressed={value.toLowerCase() === c}
+          aria-checked={value.toLowerCase() === c}
           onClick={() => onChange(c)}
-          className="flex size-6 items-center justify-center rounded-md border border-transparent transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          className="flex size-6 items-center justify-center rounded-md border border-transparent transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:hover:scale-100 focus-visible:ring-ring focus-visible:outline-none"
           style={{ backgroundColor: c }}
         >
           {value.toLowerCase() === c && <Check className="size-3.5 text-white drop-shadow" />}

@@ -28,7 +28,7 @@ export function TaskSheet({ children, title }: { children: React.ReactNode; titl
       <SheetContent
         side="right"
         initialFocus={titleRef}
-        className="w-full gap-0 overflow-y-auto p-6 pt-4 sm:max-w-2xl"
+        className="w-full gap-0 overflow-y-auto overscroll-contain p-6 pt-4 sm:max-w-2xl"
       >
         <SheetTitle ref={titleRef} tabIndex={-1} className="sr-only">
           {title}

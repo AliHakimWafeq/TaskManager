@@ -76,11 +76,15 @@ function LinkEditor({ editor, onDone }: { editor: Editor; onDone: () => void }) 
     <div className="flex items-center gap-1">
       <input
         autoFocus
+        type="url"
+        inputMode="url"
+        spellCheck={false}
+        autoComplete="off"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Paste or type a link…"
         aria-label="Link URL"
-        className="h-7 w-64 rounded-md bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground"
+        className="h-7 w-64 rounded-md bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
@@ -93,7 +97,7 @@ function LinkEditor({ editor, onDone }: { editor: Editor; onDone: () => void }) 
           }
         }}
       />
-      <button type="button" aria-label="Apply link" onClick={apply} className="flex size-7 items-center justify-center rounded-md hover:bg-muted">
+      <button type="button" aria-label="Apply link" onClick={apply} className="flex size-7 items-center justify-center rounded-md outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
         <Check className="size-3.5" />
       </button>
       {current && (
@@ -103,7 +107,7 @@ function LinkEditor({ editor, onDone }: { editor: Editor; onDone: () => void }) 
             target="_blank"
             rel="noreferrer noopener"
             aria-label="Open link"
-            className="flex size-7 items-center justify-center rounded-md hover:bg-muted"
+            className="flex size-7 items-center justify-center rounded-md outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ExternalLink className="size-3.5" />
           </a>
@@ -114,7 +118,7 @@ function LinkEditor({ editor, onDone }: { editor: Editor; onDone: () => void }) 
               editor.chain().focus().extendMarkRange("link").unsetLink().run();
               onDone();
             }}
-            className="flex size-7 items-center justify-center rounded-md hover:bg-muted"
+            className="flex size-7 items-center justify-center rounded-md outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Unlink className="size-3.5" />
           </button>

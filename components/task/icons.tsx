@@ -86,12 +86,13 @@ export function LabelChip({ name, color, className }: { name: string; color: str
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px] text-foreground/90",
+        "inline-flex h-5 max-w-32 min-w-0 items-center gap-1 rounded-full border px-1.5 text-[11px] text-foreground/90",
         className,
       )}
+      title={name}
     >
-      <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
-      {name}
+      <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+      <span className="truncate">{name}</span>
     </span>
   );
 }

@@ -16,7 +16,7 @@ export function PageHeader({
         className,
       )}
     >
-      <div className="flex min-w-0 items-center gap-2 text-sm font-medium">{children}</div>
+      <h1 className="flex min-w-0 items-center gap-2 text-sm font-medium">{children}</h1>
       {actions && <div className="flex items-center gap-1.5">{actions}</div>}
     </header>
   );

@@ -4,7 +4,8 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   pointerWithin,
   rectIntersection,
@@ -17,7 +18,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useState, useSyncExternalStore, useTransition } from "react";
 import { toast } from "sonner";
 import { CreateTaskDialog } from "@/components/task/create-task-dialog";
 import { reorderStatuses, updateStatus } from "@/lib/actions/statuses";
@@ -29,6 +30,19 @@ import { BoardColumn, ColumnShell } from "./column";
 import { TaskCardContent } from "./task-card";
 
 type Columns = Record<string, string[]>; // statusId -> ordered task ids
+
+const REDUCED = "(prefers-reduced-motion: reduce)";
+function useReducedMotion() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia(REDUCED);
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => window.matchMedia(REDUCED).matches,
+    () => false,
+  );
+}
 
 function buildColumns(statuses: Status[], tasks: TaskRow[]): Columns {
   const cols: Columns = Object.fromEntries(statuses.map((s) => [s.id, []]));
@@ -61,6 +75,7 @@ export function Board({
   const [active, setActive] = useState<{ id: string; type: "task" | "column" } | null>(null);
   const [createFor, setCreateFor] = useState<string | null>(null);
   const [, start] = useTransition();
+  const reducedMotion = useReducedMotion();
 
   const resetToServer = () =>
     setState({ key: serverKey, statusOrder: statuses.map((s) => s.id), columns: serverColumns });
@@ -87,7 +102,9 @@ export function Board({
   }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    // Touch: press and hold to drag, so a normal swipe still scrolls the board.
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     // Space picks a card up; Enter is left alone so it opens the focused card.
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -230,7 +247,7 @@ export function Board({
             )}
           </div>
         </SortableContext>
-        <DragOverlay dropAnimation={{ duration: 150 }}>
+        <DragOverlay dropAnimation={reducedMotion ? null : { duration: 150 }}>
           {activeTask && (
             <div className="w-[calc(18rem-1rem)]">
               <TaskCardContent task={activeTask} dragging />

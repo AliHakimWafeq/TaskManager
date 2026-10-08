@@ -37,7 +37,9 @@ function insertImages(editor: TiptapEditor, files: File[], taskId?: string, pos?
   files
     .filter((f) => f.type.startsWith("image/"))
     .forEach(async (file) => {
+      const id = toast.loading(`Uploading ${file.name || "image"}…`);
       const url = await uploadImage(file, taskId);
+      toast.dismiss(id);
       if (!url) return;
       const chain = editor.chain().focus();
       if (pos !== undefined) chain.insertContentAt(pos, { type: "image", attrs: { src: url, alt: file.name } }).run();
@@ -205,7 +207,10 @@ export function Editor({
   );
 
   return (
-    <div ref={setContainer} className="group/editor relative">
+    <div
+      ref={setContainer}
+      className="group/editor relative -mx-2 rounded-lg px-2 pb-1 transition-shadow focus-within:ring-1 focus-within:ring-ring/60"
+    >
       {editor && toolbar !== "never" && (
         <Toolbar
           editor={editor}

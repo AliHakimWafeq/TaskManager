@@ -17,9 +17,16 @@ function isTypingTarget(el: EventTarget | null) {
 export function NewTaskButton({ disabled }: { disabled?: boolean }) {
   if (disabled) return null;
   return (
-    <Button size="sm" className="w-full justify-start" onClick={() => window.dispatchEvent(new CustomEvent(NEW_TASK_EVENT))}>
+    <Button
+      size="sm"
+      className="w-full justify-start"
+      aria-keyshortcuts="c"
+      onClick={() => window.dispatchEvent(new CustomEvent(NEW_TASK_EVENT))}
+    >
       <Plus /> New task
-      <kbd className="ml-auto rounded bg-primary-foreground/20 px-1 font-mono text-[10px]">C</kbd>
+      <kbd aria-hidden className="ml-auto rounded bg-primary-foreground/20 px-1 font-mono text-[10px]">
+        C
+      </kbd>
     </Button>
   );
 }
