@@ -16,6 +16,12 @@ import type { TaskRow } from "@/lib/queries/tasks";
 import { cn } from "@/lib/utils";
 import { SortableTaskCard } from "./task-card";
 
+/** Keeps clicks and key presses on header buttons from starting a column drag. */
+const stopDrag = {
+  onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+  onKeyDown: (e: React.KeyboardEvent) => e.stopPropagation(),
+};
+
 export function ColumnShell({
   status,
   count,
@@ -55,6 +61,7 @@ export function ColumnShell({
                 <Button
                   variant="ghost"
                   size="icon-xs"
+                  {...stopDrag}
                   aria-label={`Hide ${status.name} column`}
                   className="opacity-0 transition-opacity group-hover/col:opacity-100 focus-visible:opacity-100"
                   onClick={onHide}
@@ -67,7 +74,7 @@ export function ColumnShell({
           </Tooltip>
         )}
         {onAdd && (
-          <Button variant="ghost" size="icon-xs" aria-label={`Add task to ${status.name}`} onClick={onAdd}>
+          <Button variant="ghost" size="icon-xs" {...stopDrag} aria-label={`Add task to ${status.name}`} onClick={onAdd}>
             <Plus />
           </Button>
         )}
@@ -108,7 +115,14 @@ export function BoardColumn({
       <ColumnShell
         status={status}
         count={tasks.length}
-        handleProps={{ ...attributes, ...listeners, className: "cursor-grab touch-none" } as React.HTMLAttributes<HTMLElement>}
+        handleProps={
+          {
+            ...attributes,
+            ...listeners,
+            "aria-label": `${status.name} column, press Space to reorder`,
+            className: "cursor-grab touch-none rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          } as React.HTMLAttributes<HTMLElement>
+        }
         onAdd={() => onOpenCreate(status.id)}
         onHide={onHide ? () => onHide(status.id) : undefined}
       >

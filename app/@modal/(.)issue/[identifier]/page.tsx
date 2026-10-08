@@ -4,7 +4,7 @@ import { TaskSheet } from "@/components/task/task-sheet";
 import { parseIdentifier } from "@/lib/identifiers";
 import { listLabelsForProject } from "@/lib/queries/labels";
 import { listStatuses } from "@/lib/queries/projects";
-import { getTaskByIdentifier } from "@/lib/queries/tasks";
+import { getTaskByIdentifier, listParentCandidates } from "@/lib/queries/tasks";
 
 export default async function IssueModal({ params }: { params: Promise<{ identifier: string }> }) {
   const { identifier } = await params;
@@ -18,6 +18,7 @@ export default async function IssueModal({ params }: { params: Promise<{ identif
         task={task}
         statuses={listStatuses(task.projectId)}
         labels={listLabelsForProject(task.projectId)}
+        parentCandidates={listParentCandidates(task.projectId, task.id)}
         mode="sheet"
       />
     </TaskSheet>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { PALETTE } from "@/lib/constants";
+import { PALETTE, PALETTE_NAMES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 export function ColorPicker({
@@ -19,7 +19,8 @@ export function ColorPicker({
         <button
           key={c}
           type="button"
-          aria-label={c}
+          aria-label={PALETTE_NAMES[c] ?? c}
+          aria-pressed={value.toLowerCase() === c}
           onClick={() => onChange(c)}
           className="flex size-6 items-center justify-center rounded-md border border-transparent transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           style={{ backgroundColor: c }}

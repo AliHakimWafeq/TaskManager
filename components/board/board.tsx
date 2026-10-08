@@ -62,10 +62,11 @@ export function Board({
   const [createFor, setCreateFor] = useState<string | null>(null);
   const [, start] = useTransition();
 
-  // Adopt fresh server data whenever it changes and nothing is being dragged.
-  if (state.key !== serverKey && !active) {
+  const resetToServer = () =>
     setState({ key: serverKey, statusOrder: statuses.map((s) => s.id), columns: serverColumns });
-  }
+
+  // Adopt fresh server data whenever it changes and nothing is being dragged.
+  if (state.key !== serverKey && !active) resetToServer();
 
   const statusById = new Map(statuses.map((s) => [s.id, s]));
   const visible = new Set(visibleStatusIds);
@@ -87,7 +88,11 @@ export function Board({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    // Space picks a card up; Enter is left alone so it opens the focused card.
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space", "Enter"] },
+    }),
   );
 
   const findColumnOf = useCallback(
@@ -143,7 +148,10 @@ export function Board({
     const activeId = String(a.id);
     const type = active?.type;
     setActive(null);
-    if (!over) return;
+    if (!over) {
+      resetToServer();
+      return;
+    }
     const overId = String(over.id);
 
     if (type === "column") {
@@ -173,11 +181,15 @@ export function Board({
     const unchanged = task && task.statusId === col && serverColumns[col]?.indexOf(activeId) === newIndex;
     setState((p) => ({ ...p, columns: { ...p.columns, [col]: ids } }));
     if (unchanged) return;
+    // Send visible neighbours so the server can place the card correctly even when
+    // some tasks in this column are filtered out or hidden.
+    const afterId = ids[newIndex - 1] ?? null;
+    const beforeId = ids[newIndex + 1] ?? null;
     start(async () => {
-      const res = await moveTask({ taskId: activeId, toStatusId: col, toIndex: newIndex });
+      const res = await moveTask({ taskId: activeId, toStatusId: col, afterId, beforeId });
       if (!res.ok) {
         toast.error(res.error);
-        setState({ key: serverKey, statusOrder: statuses.map((s) => s.id), columns: serverColumns });
+        resetToServer();
       }
     });
   }
@@ -194,7 +206,10 @@ export function Board({
         onDragStart={onDragStart}
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
-        onDragCancel={() => setActive(null)}
+        onDragCancel={() => {
+          setActive(null);
+          resetToServer();
+        }}
       >
         <SortableContext items={orderedStatuses.map((s) => colId(s.id))} strategy={horizontalListSortingStrategy}>
           <div className="flex h-full gap-3 overflow-x-auto px-4 py-3">
@@ -210,7 +225,7 @@ export function Board({
             ))}
             {orderedStatuses.length === 0 && (
               <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-                No columns match the current status filter.
+                No columns to show. Adjust the status filter or the visible columns.
               </div>
             )}
           </div>

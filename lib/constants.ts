@@ -32,6 +32,19 @@ export const DEFAULT_STATUSES: {
   { name: "Done", color: "#22c55e", type: "completed" },
 ];
 
+export const PALETTE_NAMES: Record<string, string> = {
+  "#6366f1": "Indigo",
+  "#8b5cf6": "Violet",
+  "#ec4899": "Pink",
+  "#ef4444": "Red",
+  "#f97316": "Orange",
+  "#eab308": "Yellow",
+  "#22c55e": "Green",
+  "#14b8a6": "Teal",
+  "#0ea5e9": "Sky",
+  "#64748b": "Slate",
+};
+
 export const PALETTE = [
   "#6366f1", // indigo
   "#8b5cf6", // violet

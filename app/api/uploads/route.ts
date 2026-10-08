@@ -1,15 +1,30 @@
+import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { NextResponse } from "next/server";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES } from "@/lib/constants";
-import { db, UPLOADS_DIR } from "@/lib/db";
-import { attachments } from "@/lib/db/schema";
+import { db } from "@/lib/db";
+import { attachments, tasks } from "@/lib/db/schema";
+import { isSameOrigin } from "@/lib/http";
+import { writeUpload } from "@/lib/uploads";
+
 
 export async function POST(req: Request) {
-  const form = await req.formData();
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: "Cross-origin uploads are not allowed" }, { status: 403 });
+  }
+  const length = Number(req.headers.get("content-length") ?? 0);
+  if (length > MAX_UPLOAD_BYTES + 64 * 1024) {
+    return NextResponse.json({ error: "Image is larger than 10 MB" }, { status: 413 });
+  }
+
+  let form: FormData;
+  try {
+    form = await req.formData();
+  } catch {
+    return NextResponse.json({ error: "Expected multipart form data" }, { status: 400 });
+  }
   const file = form.get("file");
-  const taskId = form.get("taskId");
+  const rawTaskId = form.get("taskId");
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No file" }, { status: 400 });
   }
@@ -21,18 +36,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Image is larger than 10 MB" }, { status: 413 });
   }
 
+  let taskId: string | null = null;
+  if (typeof rawTaskId === "string" && rawTaskId) {
+    const task = db.select({ id: tasks.id }).from(tasks).where(eq(tasks.id, rawTaskId)).get();
+    if (!task) return NextResponse.json({ error: "Unknown task" }, { status: 400 });
+    taskId = task.id;
+  }
+
   const filename = `${nanoid(16)}.${ext}`;
-  await fs.mkdir(UPLOADS_DIR, { recursive: true });
-  await fs.writeFile(path.join(UPLOADS_DIR, filename), Buffer.from(await file.arrayBuffer()));
-  db.insert(attachments)
-    .values({
-      id: nanoid(),
-      taskId: typeof taskId === "string" && taskId ? taskId : null,
-      filename,
-      mime: file.type,
-      size: file.size,
-    })
-    .run();
+  db.insert(attachments).values({ id: nanoid(), taskId, filename, mime: file.type, size: file.size }).run();
+  try {
+    await writeUpload(filename, Buffer.from(await file.arrayBuffer()));
+  } catch (e) {
+    db.delete(attachments).where(eq(attachments.filename, filename)).run();
+    console.error("Upload failed", e);
+    return NextResponse.json({ error: "Could not save the image" }, { status: 500 });
+  }
 
   return NextResponse.json({ url: `/api/uploads/${filename}` }, { status: 201 });
 }

@@ -64,7 +64,10 @@ export const updateTaskSchema = z.object({
 export const moveTaskSchema = z.object({
   taskId: id,
   toStatusId: id,
-  toIndex: z.number().int().min(0),
+  /** The visible card the task was dropped in front of. */
+  beforeId: id.nullable().optional(),
+  /** The visible card the task was dropped after. */
+  afterId: id.nullable().optional(),
 });
 
 export const createLabelSchema = z.object({

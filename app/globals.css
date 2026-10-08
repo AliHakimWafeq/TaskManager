@@ -172,3 +172,12 @@ body {
 .tiptap img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--border); display: block; }
 .tiptap img.ProseMirror-selectednode { outline: 2px solid var(--ring); }
 .tiptap strong { font-weight: 600; }
+.tiptap u { text-underline-offset: 3px; }
+.tiptap mark { background: color-mix(in oklch, #facc15 45%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
+.tiptap s { color: var(--muted-foreground); }
+.tiptap .is-empty.is-editor-empty::before,
+.tiptap .is-empty:not(.is-editor-empty)::before { pointer-events: none; }
+.tiptap h1.is-empty::before, .tiptap h2.is-empty::before, .tiptap h3.is-empty::before {
+  content: attr(data-placeholder); color: var(--muted-foreground); float: left; height: 0;
+}
+.tiptap a { cursor: text; }

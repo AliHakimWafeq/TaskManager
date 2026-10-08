@@ -1,7 +1,7 @@
-import { and, eq, inArray, isNull, like, lt, lte, sql, type SQL } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, lte, sql, type SQL } from "drizzle-orm";
 import { PRIORITIES, STATUS_TYPES, type Priority, type StatusType } from "@/lib/enums";
 import { tasks } from "@/lib/db/schema";
-import { todayIso } from "@/lib/dates";
+import { addDaysIso } from "@/lib/dates";
 import type { SortKey } from "@/lib/queries/tasks";
 
 export const DUE_OPTIONS = ["overdue", "today", "week", "none", "any"] as const;
@@ -50,10 +50,15 @@ export function hasActiveFilters(f: Filters) {
   return !!(f.q || f.status.length || f.type.length || f.priority.length || f.label.length || f.project.length || f.due);
 }
 
-/** Build the SQL predicate for queryTasks. */
-export function filtersToWhere(f: Filters): SQL | undefined {
+/** Escape LIKE wildcards; pair with `ESCAPE '\\'`. */
+export function likePattern(q: string) {
+  return `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+}
+
+/** Build the SQL predicate for queryTasks. `today` is the viewer's YYYY-MM-DD. */
+export function filtersToWhere(f: Filters, today: string): SQL | undefined {
   const conds: SQL[] = [];
-  if (f.q) conds.push(like(tasks.title, `%${f.q.replace(/[%_]/g, (m) => `\\${m}`)}%`));
+  if (f.q) conds.push(sql`${tasks.title} like ${likePattern(f.q)} escape '\\'`);
   if (f.status.length) conds.push(inArray(tasks.statusId, f.status));
   if (f.priority.length) conds.push(inArray(tasks.priority, f.priority));
   if (f.project.length) conds.push(inArray(tasks.projectId, f.project));
@@ -71,10 +76,7 @@ export function filtersToWhere(f: Filters): SQL | undefined {
     );
   }
   if (f.due) {
-    const today = todayIso();
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    const week = d.toISOString().slice(0, 10);
+    const week = addDaysIso(today, 7);
     const notDone = sql`not exists (select 1 from statuses s where s.id = ${tasks.statusId} and s.type in ('completed','cancelled'))`;
     switch (f.due) {
       case "overdue":

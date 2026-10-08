@@ -1,7 +1,6 @@
 "use client";
 
-import { CalendarIcon, Check, Plus, Tag, X } from "lucide-react";
-import { parseISO } from "date-fns";
+import { CalendarIcon, Check, CornerDownRight, Plus, Tag, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,8 +15,9 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { createLabel } from "@/lib/actions/labels";
-import { PRIORITY_META, PRIORITY_ORDER } from "@/lib/constants";
-import { formatDue, isOverdue, toIsoDate } from "@/lib/dates";
+import { PALETTE, PRIORITY_META, PRIORITY_ORDER } from "@/lib/constants";
+import { useToday } from "@/components/layout/today-provider";
+import { formatDue, fromIsoDate, isOverdue, toIsoDate } from "@/lib/dates";
 import type { Label, Status } from "@/lib/db/schema";
 import type { Priority } from "@/lib/enums";
 import { cn } from "@/lib/utils";
@@ -145,7 +145,8 @@ export function DueDatePicker({
   completed?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const overdue = isOverdue(value, completed);
+  const today = useToday();
+  const overdue = isOverdue(value, completed, today);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
@@ -159,13 +160,13 @@ export function DueDatePicker({
         }
       >
         <CalendarIcon className="size-3.5" />
-        {value ? formatDue(value) : "Due date"}
+        {value ? formatDue(value, today) : "Due date"}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={value ? parseISO(value) : undefined}
-          defaultMonth={value ? parseISO(value) : undefined}
+          selected={value ? fromIsoDate(value) : undefined}
+          defaultMonth={value ? fromIsoDate(value) : undefined}
           onSelect={(d) => {
             onChange(d ? toIsoDate(d) : null);
             setOpen(false);
@@ -220,7 +221,9 @@ export function LabelPicker({
     const name = query.trim();
     if (!name) return;
     start(async () => {
-      const res = await createLabel({ projectId, name });
+      const used = new Set(labels.map((l) => l.color));
+      const color = PALETTE.find((c) => !used.has(c)) ?? PALETTE[labels.length % PALETTE.length];
+      const res = await createLabel({ projectId, name, color });
       if (!res.ok) {
         toast.error(res.error);
         return;
@@ -277,6 +280,84 @@ export function LabelPicker({
                 </CommandItem>
               </CommandGroup>
             )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function ParentPicker({
+  value,
+  current,
+  candidates,
+  projectKey,
+  onChange,
+}: {
+  value: string | null;
+  current: { id: string; identifier: string; title: string } | null;
+  candidates: { id: string; number: number; title: string }[];
+  projectKey: string;
+  onChange: (parentId: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected =
+    candidates.find((c) => c.id === value) ?? (current && current.id === value ? current : null);
+  const label = selected
+    ? "identifier" in selected
+      ? selected.identifier
+      : `${projectKey}-${selected.number}`
+    : null;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={<Button variant="outline" size="sm" className={cn(chip, "max-w-60")} aria-label="Set parent task" />}
+      >
+        <CornerDownRight className="size-3.5" />
+        {label ? (
+          <span className="truncate">
+            <span className="font-mono">{label}</span> {selected?.title}
+          </span>
+        ) : (
+          "Parent"
+        )}
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Make subtask of…" />
+          <CommandList>
+            <CommandEmpty>No matching tasks.</CommandEmpty>
+            {value && (
+              <CommandGroup>
+                <CommandItem
+                  value="__none"
+                  onSelect={() => {
+                    onChange(null);
+                    setOpen(false);
+                  }}
+                >
+                  <X className="size-3.5" /> Remove parent
+                </CommandItem>
+              </CommandGroup>
+            )}
+            <CommandGroup heading="Top-level tasks">
+              {candidates.map((c) => (
+                <CommandItem
+                  key={c.id}
+                  value={`${projectKey}-${c.number} ${c.title}`}
+                  onSelect={() => {
+                    onChange(c.id);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    {projectKey}-{c.number}
+                  </span>
+                  <span className="truncate">{c.title}</span>
+                  {c.id === value && <Check className="ml-auto size-3.5" />}
+                </CommandItem>
+              ))}
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>

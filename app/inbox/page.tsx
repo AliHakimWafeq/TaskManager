@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { FilterBar } from "@/components/list/filter-bar";
+import { FilterBar, SortSelect } from "@/components/list/filter-bar";
+import { SubtasksToggle } from "@/components/list/subtasks-toggle";
 import { TaskTable } from "@/components/list/task-table";
+import { getPreferences } from "@/lib/preferences";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 import { Button } from "@/components/ui/button";
 import { filtersToWhere, parseFilters, type SearchParams } from "@/lib/filters";
@@ -12,10 +14,15 @@ export const metadata = { title: "Inbox" };
 
 export default async function InboxPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const filters = parseFilters(await searchParams);
+  const prefs = await getPreferences();
   if (filters.sort === "manual") filters.sort = "updatedAt";
   const projects = listProjects();
   const labels = listAllLabels();
-  const tasks = queryTasks({ where: filtersToWhere(filters), sort: filters.sort });
+  const tasks = queryTasks({
+    where: filtersToWhere(filters, prefs.today),
+    sort: filters.sort,
+    includeSubtasks: prefs.showSubtasks,
+  });
 
   if (projects.length === 0) {
     return (
@@ -35,11 +42,15 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         Inbox
         <span className="font-mono text-[11px] text-muted-foreground">{tasks.length}</span>
       </PageHeader>
-      <div className="border-b px-4 py-2">
-        <FilterBar filters={filters} labels={labels} projects={projects} />
+      <div className="flex flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-start sm:px-4">
+        <FilterBar filters={filters} labels={labels} projects={projects} className="min-w-0 flex-1" />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <SubtasksToggle show={prefs.showSubtasks} />
+          <SortSelect value={filters.sort} />
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto">
-        <TaskTable tasks={tasks} showProject emptyText="No tasks yet. Press C to create one." />
+        <TaskTable tasks={tasks} today={prefs.today} showProject emptyText="No tasks yet. Press C to create one." />
       </div>
     </>
   );

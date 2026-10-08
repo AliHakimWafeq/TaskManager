@@ -4,3 +4,7 @@ data
 .git
 *.md
 .env*
+.dev-data
+.next-verify
+.agents
+.claude

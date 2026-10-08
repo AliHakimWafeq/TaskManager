@@ -37,14 +37,12 @@ export function FilterBar({
   statuses,
   labels,
   projects,
-  showSort = true,
   className,
 }: {
   filters: Filters;
   statuses?: Status[];
   labels: Label[];
   projects?: Project[];
-  showSort?: boolean;
   className?: string;
 }) {
   const router = useRouter();
@@ -54,7 +52,8 @@ export function FilterBar({
   const [q, setQ] = useState(filters.q);
 
   function set(key: string, values: string[] | string | null) {
-    const next = new URLSearchParams(sp.toString());
+    // Read the live URL so a debounced search and a filter click don't overwrite each other.
+    const next = new URLSearchParams(typeof window !== "undefined" ? window.location.search : sp.toString());
     const v = Array.isArray(values) ? values.join(",") : values;
     if (!v) next.delete(key);
     else next.set(key, v);
@@ -155,27 +154,6 @@ export function FilterBar({
         </Button>
       )}
 
-      {showSort && (
-        <div className="ml-auto flex items-center gap-1">
-          <ArrowUpDown className="size-3.5 text-muted-foreground" />
-          <Select
-            value={filters.sort}
-            items={SORT_OPTIONS}
-            onValueChange={(v) => set("sort", v === "manual" ? null : (v as string))}
-          >
-            <SelectTrigger size="sm" className="h-7 border-0 bg-transparent px-1.5 text-xs shadow-none dark:bg-transparent">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="end">
-              {SORT_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
     </div>
   );
 }
@@ -273,5 +251,42 @@ function MultiFilter({
         </Command>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Sort control for list views; writes `sort` to the URL. */
+export function SortSelect({ value }: { value: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [, start] = useTransition();
+  return (
+    <div className="flex items-center">
+      <Select
+        value={value}
+        items={SORT_OPTIONS}
+        onValueChange={(v) => {
+          const next = new URLSearchParams(window.location.search);
+          if (!v || v === "manual") next.delete("sort");
+          else next.set("sort", v as string);
+          start(() => router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false }));
+        }}
+      >
+        <SelectTrigger
+          size="sm"
+          aria-label="Sort"
+          className="h-7 gap-1 border-dashed px-2 text-xs font-normal text-muted-foreground dark:bg-transparent"
+        >
+          <ArrowUpDown className="size-3" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end">
+          {SORT_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

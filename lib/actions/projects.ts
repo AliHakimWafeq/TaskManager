@@ -1,12 +1,13 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { DEFAULT_STATUSES } from "@/lib/constants";
 import { db } from "@/lib/db";
-import { projects, statuses } from "@/lib/db/schema";
+import { attachments, projects, statuses, tasks } from "@/lib/db/schema";
+import { removeUploadFiles } from "@/lib/uploads";
 import { createProjectSchema, updateProjectSchema, type ActionResult } from "@/lib/validation";
 
 function fail(e: unknown): { ok: false; error: string } {
@@ -57,7 +58,16 @@ export async function updateProject(
 
 export async function deleteProject(id: string): Promise<ActionResult> {
   try {
-    db.delete(projects).where(eq(projects.id, id)).run();
+    const files = db.transaction((tx) => {
+      const taskIds = tx.select({ id: tasks.id }).from(tasks).where(eq(tasks.projectId, id)).all().map((t) => t.id);
+      const owned = taskIds.length
+        ? tx.select({ filename: attachments.filename }).from(attachments).where(inArray(attachments.taskId, taskIds)).all()
+        : [];
+      if (taskIds.length) tx.delete(attachments).where(inArray(attachments.taskId, taskIds)).run();
+      tx.delete(projects).where(eq(projects.id, id)).run();
+      return owned.map((a) => a.filename);
+    });
+    await removeUploadFiles(files);
     revalidatePath("/", "layout");
     return { ok: true, data: undefined };
   } catch (e) {

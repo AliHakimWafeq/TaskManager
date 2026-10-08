@@ -205,7 +205,8 @@ function StatusRow({
       <Input
         key={status.name}
         defaultValue={status.name}
-        className="h-7 flex-1 border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-ring"
+        aria-label="Status name"
+        className="h-7 min-w-28 flex-1 border-transparent bg-transparent text-[13px] shadow-none hover:border-input focus-visible:border-ring md:text-[13px] dark:bg-transparent"
         onBlur={(e) => {
           const v = e.target.value.trim();
           if (v && v !== status.name) save({ name: v });
@@ -225,7 +226,7 @@ function StatusRow({
         items={typeItems}
         onValueChange={(v) => v && v !== status.type && save({ type: v as StatusType })}
       >
-        <SelectTrigger size="sm" className="w-32">
+        <SelectTrigger size="sm" className="w-28 shrink-0 text-xs" aria-label="Status type">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -237,8 +238,12 @@ function StatusRow({
         </SelectContent>
       </Select>
 
-      <span className="w-14 text-right font-mono text-xs text-muted-foreground">
-        {count} {count === 1 ? "task" : "tasks"}
+      <span
+        className="w-8 shrink-0 text-right font-mono text-xs text-muted-foreground"
+        title={`${count} ${count === 1 ? "task" : "tasks"}`}
+        aria-label={`${count} ${count === 1 ? "task" : "tasks"}`}
+      >
+        {count}
       </span>
 
       <Tooltip>

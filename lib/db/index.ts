@@ -4,9 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import * as schema from "./schema";
 
-export const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
-export const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
-export const DB_PATH = path.join(DATA_DIR, "app.db");
+// Runtime data paths; the hints keep Turbopack from tracing them as build inputs.
+export const DATA_DIR = process.env.DATA_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "data");
+export const UPLOADS_DIR = path.join(/*turbopackIgnore: true*/ DATA_DIR, "uploads");
+export const DB_PATH = path.join(/*turbopackIgnore: true*/ DATA_DIR, "app.db");
 
 function createDb() {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });

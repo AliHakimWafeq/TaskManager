@@ -13,11 +13,25 @@ function isTypingTarget(el: EventTarget | null) {
   return el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName);
 }
 
-/** Sidebar "New task" button plus the global `C` shortcut. */
-export function NewTaskButton({ projects }: { projects: ProjectMeta[] }) {
+/** Sidebar button: asks the single global dialog host to open. */
+export function NewTaskButton({ disabled }: { disabled?: boolean }) {
+  if (disabled) return null;
+  return (
+    <Button size="sm" className="w-full justify-start" onClick={() => window.dispatchEvent(new CustomEvent(NEW_TASK_EVENT))}>
+      <Plus /> New task
+      <kbd className="ml-auto rounded bg-primary-foreground/20 px-1 font-mono text-[10px]">C</kbd>
+    </Button>
+  );
+}
+
+/** Mounted once in the layout: owns the create dialog and the global `C` shortcut. */
+export function NewTaskHost({ projects }: { projects: ProjectMeta[] }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const currentKey = /^\/projects\/([^/]+)/.exec(pathname)?.[1]?.toUpperCase();
+  // Default to the project in view: /projects/KEY/... or /issue/KEY-12.
+  const currentKey = (
+    /^\/projects\/([^/]+)/.exec(pathname)?.[1] ?? /^\/issue\/([A-Za-z][A-Za-z0-9]*)-\d+/.exec(pathname)?.[1]
+  )?.toUpperCase();
   const current = projects.find((p) => p.project.key === currentKey);
 
   useEffect(() => {
@@ -37,22 +51,8 @@ export function NewTaskButton({ projects }: { projects: ProjectMeta[] }) {
     };
   }, []);
 
-  if (projects.length === 0) return null;
-
+  if (projects.length === 0 || !open) return null;
   return (
-    <>
-      <Button size="sm" className="w-full justify-start" onClick={() => setOpen(true)}>
-        <Plus /> New task
-        <kbd className="ml-auto rounded bg-primary-foreground/20 px-1 font-mono text-[10px]">C</kbd>
-      </Button>
-      {open && (
-        <CreateTaskDialog
-          open={open}
-          onOpenChange={setOpen}
-          projects={projects}
-          defaultProjectId={current?.project.id}
-        />
-      )}
-    </>
+    <CreateTaskDialog open={open} onOpenChange={setOpen} projects={projects} defaultProjectId={current?.project.id} />
   );
 }

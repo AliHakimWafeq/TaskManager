@@ -1,8 +1,9 @@
 "use server";
 
-import { desc, like, sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { tasks } from "@/lib/db/schema";
+import { likePattern } from "@/lib/filters";
 
 export type SearchHit = {
   id: string;
@@ -17,10 +18,10 @@ export type SearchHit = {
 export async function searchTasks(query: string): Promise<SearchHit[]> {
   const q = query.trim();
   if (!q) return [];
-  const pattern = `%${q.replace(/[%_]/g, (m) => `\\${m}`)}%`;
+  const pattern = likePattern(q.slice(0, 100));
   const rows = db.query.tasks
     .findMany({
-      where: sql`(${like(tasks.title, pattern)} or (select p.key || '-' || ${tasks.number} from projects p where p.id = ${tasks.projectId}) like ${pattern.toUpperCase()})`,
+      where: sql`(${tasks.title} like ${pattern} escape '\\' or (select p.key || '-' || ${tasks.number} from projects p where p.id = ${tasks.projectId}) like ${pattern.toUpperCase()} escape '\\')`,
       with: {
         project: { columns: { key: true, name: true, color: true } },
         status: { columns: { type: true, color: true } },

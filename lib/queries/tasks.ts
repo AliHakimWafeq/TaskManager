@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { labels, projects, statuses, tasks } from "@/lib/db/schema";
+import { projects, tasks } from "@/lib/db/schema";
 import type { Label, Project, Status, Task } from "@/lib/db/schema";
 import { PRIORITY_ORDER } from "@/lib/constants";
 
@@ -15,6 +15,8 @@ export function countTasksByStatus(projectId: string): Record<string, number> {
   return Object.fromEntries(rows.map((r) => [r.statusId, r.c]));
 }
 
+export type ParentRef = { id: string; number: number; title: string; identifier: string };
+
 export type TaskRow = Task & {
   identifier: string;
   project: Pick<Project, "id" | "key" | "name" | "color">;
@@ -22,6 +24,7 @@ export type TaskRow = Task & {
   labels: Label[];
   subtaskCount: number;
   subtaskDone: number;
+  parent: ParentRef | null;
 };
 
 export type SortKey = "manual" | "priority" | "dueDate" | "createdAt" | "updatedAt" | "title";
@@ -48,18 +51,20 @@ export function queryTasks(opts: {
       status: true,
       taskLabels: { with: { label: true } },
       subtasks: { with: { status: { columns: { type: true } } }, columns: { id: true } },
+      parent: { columns: { id: true, number: true, title: true } },
     },
     orderBy: [asc(tasks.position), desc(tasks.createdAt)],
   }).sync();
 
   const out: TaskRow[] = rows.map((r) => {
-    const { taskLabels, subtasks, ...task } = r;
+    const { taskLabels, subtasks, parent, ...task } = r;
     return {
       ...task,
       identifier: `${r.project.key}-${r.number}`,
       labels: taskLabels.map((tl) => tl.label).sort((a, b) => a.name.localeCompare(b.name)),
       subtaskCount: subtasks.length,
       subtaskDone: subtasks.filter((s) => s.status.type === "completed").length,
+      parent: parent ? { ...parent, identifier: `${r.project.key}-${parent.number}` } : null,
     };
   });
 
@@ -85,7 +90,6 @@ export type TaskDetail = TaskRow & {
     status: Status;
     identifier: string;
   })[];
-  parent: (Pick<Task, "id" | "number" | "title"> & { identifier: string }) | null;
 };
 
 export function getTaskByIdentifier(key: string, number: number): TaskDetail | null {
@@ -122,4 +126,12 @@ export function getTaskById(id: string) {
   return db.select().from(tasks).where(eq(tasks.id, id)).get() ?? null;
 }
 
-export { labels, statuses };
+/** Top-level tasks in a project that could become the parent of `taskId`. */
+export function listParentCandidates(projectId: string, excludeId: string) {
+  return db
+    .select({ id: tasks.id, number: tasks.number, title: tasks.title })
+    .from(tasks)
+    .where(and(eq(tasks.projectId, projectId), sql`${tasks.parentId} IS NULL`, sql`${tasks.id} <> ${excludeId}`))
+    .orderBy(desc(tasks.updatedAt))
+    .all();
+}

@@ -28,6 +28,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (e.defaultPrevented) return; // e.g. the editor used ⌘K to add a link
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOpen((o) => !o);

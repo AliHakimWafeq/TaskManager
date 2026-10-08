@@ -26,11 +26,11 @@ import type { Label, Status } from "@/lib/db/schema";
 import type { Priority } from "@/lib/enums";
 import type { TaskDetail as TaskDetailData } from "@/lib/queries/tasks";
 import { cn } from "@/lib/utils";
-import { Editor } from "./editor";
+import { Editor } from "@/components/editor/editor";
 import { PriorityIcon, StatusIcon } from "./icons";
-import { DueDatePicker, LabelPicker, PriorityPicker, StatusPicker } from "./pickers";
+import { DueDatePicker, LabelPicker, ParentPicker, PriorityPicker, StatusPicker } from "./pickers";
 
-type Patch = Partial<Pick<TaskDetailData, "title" | "description" | "statusId" | "priority" | "dueDate">> & {
+type Patch = Partial<Pick<TaskDetailData, "title" | "description" | "statusId" | "priority" | "dueDate" | "parentId">> & {
   labelIds?: string[];
 };
 
@@ -38,11 +38,13 @@ export function TaskDetail({
   task,
   statuses,
   labels: initialLabels,
+  parentCandidates,
   mode,
 }: {
   task: TaskDetailData;
   statuses: Status[];
   labels: Label[];
+  parentCandidates: { id: string; number: number; title: string }[];
   mode: "page" | "sheet";
 }) {
   const router = useRouter();
@@ -70,31 +72,46 @@ export function TaskDetail({
   }
 
   const completed = opt.status.type === "completed";
+  // Inside the side sheet, hopping between tasks replaces history so one close returns to the board.
+  const replace = mode === "sheet";
 
   return (
     <div className={cn("flex flex-col gap-5", mode === "page" && "mx-auto w-full max-w-3xl px-8 py-8")}>
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Link href={`/projects/${task.project.key}`} className="flex items-center gap-1.5 hover:text-foreground">
+      <div className={cn("flex min-h-7 items-center gap-2 text-xs text-muted-foreground", mode === "sheet" && "pr-9")}>
+        <Link href={`/projects/${task.project.key}`} className="flex shrink-0 items-center gap-1.5 hover:text-foreground">
           <span className="size-2 rounded-sm" style={{ backgroundColor: task.project.color }} />
           {task.project.name}
         </Link>
         <span>›</span>
-        <span className="font-mono">{task.identifier}</span>
         {task.parent && (
           <>
-            <span>›</span>
-            <Link href={`/issue/${task.parent.identifier}`} className="truncate hover:text-foreground">
-              {task.parent.title}
+            <Link
+              href={`/issue/${task.parent.identifier}`}
+              replace={replace}
+              className="min-w-0 truncate hover:text-foreground"
+              title={task.parent.title}
+            >
+              <span className="font-mono">{task.parent.identifier}</span> {task.parent.title}
             </Link>
+            <span>›</span>
           </>
         )}
+        <span className="shrink-0 font-mono">{task.identifier}</span>
         <div className="ml-auto flex items-center gap-0.5">
-          <CopyButton text={`${typeof window !== "undefined" ? window.location.origin : ""}/issue/${task.identifier}`} label="Copy link" icon={<Link2 />} />
-          <CopyButton text={task.identifier} label="Copy ID" icon={<Copy />} />
+          <CopyButton text={() => `${window.location.origin}/issue/${task.identifier}`} label="Copy link" icon={<Link2 />} />
+          <CopyButton text={() => task.identifier} label="Copy ID" icon={<Copy />} />
           {mode === "sheet" && (
             <Tooltip>
               <TooltipTrigger
-                render={<Button variant="ghost" size="icon-xs" aria-label="Open full page" onClick={() => router.push(`/issue/${task.identifier}`)} />}
+                render={
+                  // A plain anchor forces a document load. A client-side push to the same
+                  // URL would be intercepted again and keep showing the sheet.
+                  <a
+                    href={`/issue/${task.identifier}`}
+                    aria-label="Open full page"
+                    className="flex size-6 items-center justify-center rounded-md hover:bg-muted hover:text-foreground [&_svg]:size-3"
+                  />
+                }
               >
                 <ExternalLink />
               </TooltipTrigger>
@@ -102,9 +119,15 @@ export function TaskDetail({
             </Tooltip>
           )}
           <DeleteTaskButton
-            taskId={task.id}
             identifier={task.identifier}
-            afterDelete={() => (mode === "sheet" ? router.back() : router.push(`/projects/${task.project.key}`))}
+            onDelete={async () => {
+              if (mode === "sheet") {
+                // Close the sheet first so the deleted task never re-renders.
+                router.back();
+                return deleteTask(task.id);
+              }
+              return deleteTask(task.id, `/projects/${task.project.key}`);
+            }}
           />
         </div>
       </div>
@@ -137,6 +160,15 @@ export function TaskDetail({
         <StatusPicker value={opt.statusId} statuses={statuses} onChange={(statusId) => update({ statusId })} />
         <PriorityPicker value={opt.priority} onChange={(priority) => update({ priority })} />
         <DueDatePicker value={opt.dueDate} completed={completed} onChange={(dueDate) => update({ dueDate })} />
+        {task.subtaskCount === 0 && (
+          <ParentPicker
+            value={opt.parentId}
+            current={task.parent}
+            candidates={parentCandidates}
+            projectKey={task.project.key}
+            onChange={(parentId) => update({ parentId })}
+          />
+        )}
         <LabelPicker
           value={opt.labels.map((l) => l.id)}
           labels={labels}
@@ -153,9 +185,9 @@ export function TaskDetail({
         onChange={(description) => update({ description })}
       />
 
-      <Subtasks task={opt} statuses={statuses} />
+      <Subtasks task={opt} statuses={statuses} replace={replace} />
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[11px] text-muted-foreground" suppressHydrationWarning>
         Created {formatRelative(task.createdAt)} · Updated {formatRelative(task.updatedAt)}
         {task.completedAt && <> · Completed {formatRelative(task.completedAt)}</>}
       </p>
@@ -163,7 +195,7 @@ export function TaskDetail({
   );
 }
 
-function CopyButton({ text, label, icon }: { text: string; label: string; icon: React.ReactNode }) {
+function CopyButton({ text, label, icon }: { text: () => string; label: string; icon: React.ReactNode }) {
   const [done, setDone] = useState(false);
   return (
     <Tooltip>
@@ -174,7 +206,7 @@ function CopyButton({ text, label, icon }: { text: string; label: string; icon: 
             size="icon-xs"
             aria-label={label}
             onClick={() => {
-              navigator.clipboard.writeText(text).then(() => {
+              navigator.clipboard.writeText(text()).then(() => {
                 setDone(true);
                 setTimeout(() => setDone(false), 1200);
               });
@@ -190,13 +222,11 @@ function CopyButton({ text, label, icon }: { text: string; label: string; icon: 
 }
 
 function DeleteTaskButton({
-  taskId,
   identifier,
-  afterDelete,
+  onDelete,
 }: {
-  taskId: string;
   identifier: string;
-  afterDelete: () => void;
+  onDelete: () => Promise<{ ok: boolean; error?: string } | undefined>;
 }) {
   const [pending, start] = useTransition();
   return (
@@ -220,13 +250,9 @@ function DeleteTaskButton({
             disabled={pending}
             onClick={() =>
               start(async () => {
-                const res = await deleteTask(taskId);
-                if (!res.ok) {
-                  toast.error(res.error);
-                  return;
-                }
                 toast.success(`${identifier} deleted`);
-                afterDelete();
+                const res = await onDelete();
+                if (res && !res.ok) toast.error(res.error ?? "Could not delete the task");
               })
             }
           >
@@ -238,7 +264,7 @@ function DeleteTaskButton({
   );
 }
 
-function Subtasks({ task, statuses }: { task: TaskDetailData; statuses: Status[] }) {
+function Subtasks({ task, statuses, replace }: { task: TaskDetailData; statuses: Status[]; replace: boolean }) {
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [pending, start] = useTransition();
@@ -305,6 +331,7 @@ function Subtasks({ task, statuses }: { task: TaskDetailData; statuses: Status[]
               <span className="font-mono text-[11px] text-muted-foreground">{s.identifier}</span>
               <Link
                 href={`/issue/${s.identifier}`}
+                replace={replace}
                 className={cn("flex-1 truncate hover:underline", done && "text-muted-foreground line-through")}
               >
                 {s.title}

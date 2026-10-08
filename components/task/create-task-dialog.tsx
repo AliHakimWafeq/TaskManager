@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ModKbd } from "@/components/layout/kbd";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import { createTask } from "@/lib/actions/tasks";
 import type { Label } from "@/lib/db/schema";
 import type { Priority } from "@/lib/enums";
 import type { ProjectMeta } from "@/lib/queries/meta";
-import { Editor } from "./editor";
+import { Editor } from "@/components/editor/editor";
 import { DueDatePicker, LabelPicker, PriorityPicker, StatusPicker } from "./pickers";
 
 function dedupeById<T extends { id: string }>(items: T[]) {
@@ -51,7 +51,8 @@ export function CreateTaskDialog({
   const [projectId, setProjectId] = useState(defaultProjectId ?? projects[0]?.project.id ?? "");
   const meta = projects.find((p) => p.project.id === projectId) ?? projects[0];
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState<string | null>(null);
+  // A ref, not state: the editor may flush its last change in the same tick as submit.
+  const description = useRef<string | null>(null);
   const [statusId, setStatusId] = useState<string | undefined>(defaultStatusId);
   const [priority, setPriority] = useState<Priority>("none");
   const [dueDate, setDueDate] = useState<string | null>(null);
@@ -70,7 +71,7 @@ export function CreateTaskDialog({
 
   function reset(keepProject = true) {
     setTitle("");
-    setDescription(null);
+    description.current = null;
     setPriority("none");
     setDueDate(null);
     setLabelIds([]);
@@ -85,7 +86,7 @@ export function CreateTaskDialog({
       const res = await createTask({
         projectId: meta.project.id,
         title,
-        description,
+        description: description.current,
         statusId: effectiveStatusId,
         priority,
         dueDate,
@@ -164,9 +165,12 @@ export function CreateTaskDialog({
             <Editor
               key={`${projectId}-${editorKey}`}
               content={null}
-              onChange={setDescription}
+              onChange={(json) => {
+                description.current = json;
+              }}
               minHeight="5rem"
-              placeholder="Add description… (paste or drop images)"
+              toolbar="never"
+              onSubmit={() => submit()}
             />
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
               {effectiveStatusId && (

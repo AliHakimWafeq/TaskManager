@@ -4,6 +4,17 @@ import { Globe, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -104,7 +115,8 @@ function LabelRowItem({ label }: { label: LabelRow }) {
       <Input
         key={label.name}
         defaultValue={label.name}
-        className="h-7 flex-1 border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-ring"
+        aria-label="Label name"
+        className="h-7 min-w-28 flex-1 border-transparent bg-transparent text-[13px] shadow-none hover:border-input focus-visible:border-ring md:text-[13px] dark:bg-transparent"
         onBlur={(e) => {
           const v = e.target.value.trim();
           if (v && v !== label.name) save({ name: v });
@@ -120,20 +132,44 @@ function LabelRowItem({ label }: { label: LabelRow }) {
           <TooltipContent>Global label, available in every project</TooltipContent>
         </Tooltip>
       )}
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label="Delete label"
-        className="text-muted-foreground hover:text-destructive"
-        onClick={() =>
-          deleteLabel(label.id).then((res) => {
-            if (!res.ok) toast.error(res.error);
-            router.refresh();
-          })
-        }
-      >
-        <Trash2 />
-      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={`Delete label ${label.name}`}
+              className="text-muted-foreground hover:text-destructive"
+            />
+          }
+        >
+          <Trash2 />
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete label “{label.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {label.projectId === null
+                ? "This is a global label. It will be removed from tasks in every project."
+                : "It will be removed from every task in this project."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() =>
+                deleteLabel(label.id).then((res) => {
+                  if (!res.ok) toast.error(res.error);
+                  router.refresh();
+                })
+              }
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </li>
   );
 }
